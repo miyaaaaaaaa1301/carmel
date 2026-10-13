@@ -40,9 +40,9 @@ function authenticate(req: AuthRequest, res: Response, next: NextFunction) {
     next()
   } catch { return res.status(401).json({ error: 'Your session has expired. Please sign in again.' }) }
 }
-function allowRoles(...roles: Array<'ADMIN' | 'FORMATOR'>) {
+function allowRoles(...roles: Array<'ADMIN' | 'FORMATOR' | 'USER'>) {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
-    if (!req.auth || !roles.includes(req.auth.role as 'ADMIN' | 'FORMATOR')) return res.status(403).json({ error: 'You do not have access to this resource.' })
+    if (!req.auth || !roles.includes(req.auth.role)) return res.status(403).json({ error: 'You do not have access to this resource.' })
     next()
   }
 }
@@ -61,13 +61,14 @@ function routeParam(req: Request, name: string): string {
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', service: 'carmel-in-communion-api' }))
 
-const registerSchema = z.object({ name: z.string().trim().min(2).max(100), email: z.email().transform((value) => value.toLowerCase()), password: z.string().min(10).max(128) })
+const memberPrivacyVersion = '2026-10-02'
+const registerSchema = z.object({ name: z.string().trim().min(2).max(100), email: z.email().transform((value) => value.toLowerCase()), phone: z.string().trim().min(7).max(30), address: z.string().trim().min(5).max(300), password: z.string().min(10).max(128), privacyConsent: z.literal(true) })
 app.post('/api/auth/register', asyncRoute(async (req, res) => {
   const parsed = validate(registerSchema, req.body)
   if (parsed.error) return res.status(400).json({ error: 'Please check the form fields.', details: parsed.error })
   const passwordHash = await bcrypt.hash(parsed.data!.password, 12)
   try {
-    const user = await prisma.user.create({ data: { ...parsed.data!, passwordHash, role: 'USER' }, select: { id: true, name: true, email: true, role: true } })
+    const user = await prisma.user.create({ data: { name: parsed.data!.name, email: parsed.data!.email, phone: parsed.data!.phone, address: parsed.data!.address, passwordHash, role: 'USER', privacyConsentAt: new Date(), privacyPolicyVersion: memberPrivacyVersion }, select: { id: true, name: true, email: true, phone: true, address: true, role: true } })
     const token = jwt.sign({ id: user.id, role: user.role }, jwtSecret, { expiresIn: '8h' })
     res.cookie('carmel_session', token, { ...cookieOptions, maxAge: 8 * 60 * 60 * 1000 })
     res.status(201).json({ user })
@@ -94,16 +95,45 @@ app.post('/api/auth/login', asyncRoute(async (req, res) => {
   if (!user || !user.isActive || !(await bcrypt.compare(input.password, user.passwordHash))) return res.status(401).json({ error: 'Email or password is incorrect.' })
   const token = jwt.sign({ id: user.id, role: user.role }, jwtSecret, { expiresIn: '8h' })
   res.cookie('carmel_session', token, { ...cookieOptions, maxAge: 8 * 60 * 60 * 1000 })
-  res.json({ user: { id: user.id, name: user.name, email: user.email, role: user.role } })
+  res.json({ user: { id: user.id, name: user.name, email: user.email, phone: user.phone, address: user.address, role: user.role } })
 }))
 app.post('/api/auth/logout', (_req, res) => { res.clearCookie('carmel_session', cookieOptions); res.status(204).end() })
 app.get('/api/auth/me', authenticate, asyncRoute(async (req, res) => {
   if (req.auth!.demo && demoAuthEnabled) {
     return res.json({ user: { id: req.auth!.id, name: 'Local Demo Administrator', email: demoAdminEmail, role: 'ADMIN', isActive: true } })
   }
-  const user = await prisma.user.findUnique({ where: { id: req.auth!.id }, select: { id: true, name: true, email: true, role: true, isActive: true } })
+  const user = await prisma.user.findUnique({ where: { id: req.auth!.id }, select: { id: true, name: true, email: true, phone: true, address: true, role: true, isActive: true } })
   if (!user?.isActive) return res.status(401).json({ error: 'This account is inactive.' })
   res.json({ user })
+}))
+const profileUpdateSchema = z.object({
+  name: z.string().trim().min(2).max(100),
+  email: z.email().transform((value) => value.toLowerCase()),
+  phone: z.string().trim().min(7).max(30).optional(),
+  address: z.string().trim().min(5).max(300).optional(),
+  currentPassword: z.string().optional(),
+  newPassword: z.string().min(10).max(128).optional(),
+}).refine((input) => !input.newPassword || Boolean(input.currentPassword), { message: 'Enter your current password to set a new password.', path: ['currentPassword'] })
+app.patch('/api/auth/me', authenticate, allowRoles('ADMIN', 'FORMATOR', 'USER'), asyncRoute(async (req, res) => {
+  if (req.auth!.demo) return res.status(400).json({ error: 'Update this prototype account in its local profile editor.' })
+  const parsed = validate(profileUpdateSchema, req.body)
+  if (parsed.error) return res.status(400).json({ error: 'Please check the profile fields.', details: parsed.error })
+  const input = parsed.data!
+  const currentUser = await prisma.user.findUnique({ where: { id: req.auth!.id }, select: { id: true, passwordHash: true, isActive: true } })
+  if (!currentUser?.isActive) return res.status(401).json({ error: 'This account is inactive.' })
+  if (input.newPassword && !(await bcrypt.compare(input.currentPassword!, currentUser.passwordHash))) return res.status(400).json({ error: 'Your current password is incorrect.' })
+  const data: Prisma.UserUpdateInput = { name: input.name, email: input.email }
+  if (input.phone !== undefined) data.phone = input.phone
+  if (input.address !== undefined) data.address = input.address
+  if (input.newPassword) data.passwordHash = await bcrypt.hash(input.newPassword, 12)
+  try {
+    const user = await prisma.user.update({ where: { id: currentUser.id }, data, select: { id: true, name: true, email: true, phone: true, address: true, role: true, isActive: true } })
+    await audit(user.id, 'UPDATE_PROFILE', 'User', user.id)
+    res.json({ user })
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') return res.status(409).json({ error: 'An account with this email already exists.' })
+    throw error
+  }
 }))
 
 const donationSchema = z.object({
@@ -142,6 +172,24 @@ app.post('/api/donations', asyncRoute(async (req, res) => {
   }, select: { referenceCode: true, amount: true, paymentMethod: true, isAnonymous: true, status: true, createdAt: true } })
   res.status(201).json({ donation })
 }))
+app.get('/api/donations/mine', authenticate, allowRoles('USER'), asyncRoute(async (req, res) => {
+  const user = await prisma.user.findUnique({ where: { id: req.auth!.id }, select: { email: true, isActive: true } })
+  if (!user?.isActive) return res.status(401).json({ error: 'This account is inactive.' })
+  const donations = await prisma.donation.findMany({ where: { donorEmail: user.email }, orderBy: { createdAt: 'desc' }, select: { referenceCode: true, amount: true, paymentMethod: true, status: true, createdAt: true, fund: true } })
+  res.json({ donations })
+}))
+const discernmentStages = ['EXPLORING', 'PRAYING_AND_LEARNING', 'READY_TO_VISIT', 'IN_CONVERSATION'] as const
+const discernmentSchema = z.object({ monastery: z.string().trim().max(150).default(''), note: z.string().trim().max(5000).default('') })
+app.get('/api/discernment/mine', authenticate, allowRoles('USER'), asyncRoute(async (req, res) => {
+  const discernment = await prisma.discernment.upsert({ where: { userId: req.auth!.id }, update: {}, create: { userId: req.auth!.id } })
+  res.json({ discernment })
+}))
+app.patch('/api/discernment/mine', authenticate, allowRoles('USER'), asyncRoute(async (req, res) => {
+  const parsed = validate(discernmentSchema, req.body)
+  if (parsed.error) return res.status(400).json({ error: 'Please check your discernment details.', details: parsed.error })
+  const discernment = await prisma.discernment.upsert({ where: { userId: req.auth!.id }, update: parsed.data!, create: { userId: req.auth!.id, ...parsed.data! } })
+  res.json({ discernment })
+}))
 app.get('/api/donations/:reference', asyncRoute(async (req, res) => {
   const donation = await prisma.donation.findUnique({ where: { referenceCode: routeParam(req, 'reference') }, select: { referenceCode: true, amount: true, paymentMethod: true, isAnonymous: true, status: true, createdAt: true, fund: true } })
   if (!donation) return res.status(404).json({ error: 'Acknowledgment not found.' })
@@ -178,6 +226,21 @@ app.get('/api/faqs', asyncRoute(async (_req, res) => {
 app.get('/api/admin/donations', authenticate, allowRoles('ADMIN', 'FORMATOR'), asyncRoute(async (_req, res) => {
   const donations = await prisma.donation.findMany({ orderBy: { createdAt: 'desc' }, include: { beneficiaryMonastery: { select: { name: true } } } })
   res.json({ donations })
+}))
+app.get('/api/admin/discernment', authenticate, allowRoles('ADMIN'), asyncRoute(async (_req, res) => {
+  const discerners = await prisma.discernment.findMany({ where: { user: { isActive: true } }, orderBy: { updatedAt: 'desc' }, select: { id: true, userId: true, stage: true, monastery: true, updatedAt: true, user: { select: { name: true, email: true } } } })
+  res.json({ discerners })
+}))
+const discernmentStageSchema = z.object({ stage: z.enum(discernmentStages) })
+app.patch('/api/admin/discernment/:userId/stage', authenticate, allowRoles('ADMIN'), asyncRoute(async (req, res) => {
+  const parsed = validate(discernmentStageSchema, req.body)
+  if (parsed.error) return res.status(400).json({ error: 'Choose a valid discernment stage.' })
+  const userId = routeParam(req, 'userId')
+  const current = await prisma.discernment.findUnique({ where: { userId }, select: { stage: true } })
+  if (!current) return res.status(404).json({ error: 'Discernment record not found.' })
+  const discernment = await prisma.discernment.update({ where: { userId }, data: { stage: parsed.data!.stage }, select: { userId: true, stage: true, updatedAt: true } })
+  await audit(req.auth!.id, 'UPDATE_STAGE', 'Discernment', discernment.userId, { from: current.stage, to: discernment.stage })
+  res.json({ discernment })
 }))
 const statusSchema = z.object({ status: z.enum(['PENDING', 'RECONCILING', 'VERIFIED', 'COMPLETED', 'FAILED']) })
 app.patch('/api/admin/donations/:id/status', authenticate, allowRoles('ADMIN', 'FORMATOR'), asyncRoute(async (req, res) => {

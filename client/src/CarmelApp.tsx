@@ -1,52 +1,268 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
-import { BrowserRouter, Link, Navigate, NavLink, Route, Routes, useNavigate } from 'react-router-dom'
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUpRight, Banknote, Bell, Check, ChevronDown, Clipboard, FileText, HandHeart, Home, Image, LogOut, Mail, Menu, MessageCircle, Search, Settings, ShieldCheck, Smartphone, User, Users, X } from 'lucide-react'
+import { useEffect, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react'
+import { BrowserRouter, Link, Navigate, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUpRight, Banknote, Bell, Check, ChevronDown, Clipboard, FileText, HandHeart, Heart, Home, Image, LogOut, Mail, Maximize2, Menu, MessageCircle, Pencil, Search, ShieldCheck, Smartphone, User, Users, X } from 'lucide-react'
 import { Area, AreaChart, CartesianGrid, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import attractedByTheVeilImage from './assets/attracted-by-the-veil.jpg'
 import './Carmel.css'
 
 const cities = ['Angeles', 'Bacolod', 'Baguio', 'Cagayan de Oro', 'Castillejos', 'Cebu', 'Davao', 'Gumaca', 'Infanta']
 const nav = [['Home', '/'], ['Our Monastery', '/monasteries'], ['Carmelife', '/carmelife'], ['Carmelights', '/carmelights'], ['About us', '/about'], ['Donations', '/donations'], ['Updates', '/updates'], ['Contact us', '/contact']]
+const managedContentKey = 'carmel-prototype-site-content'
+const managedContentEvent = 'carmel-site-content-updated'
+type ManagedMonastery = { id: string; name: string; city: string; description: string; projectTitle: string; projectDetails: string; image: string }
+type ManagedArticle = { id: string; title: string; author: string; body: string; image: string }
+type ManagedSiteContent = { homeHeroImage: string; monasteries: ManagedMonastery[]; carmelife: ManagedArticle[]; carmelights: ManagedArticle[] }
+const monasteryCities = [...cities, 'Iloilo', 'Lipa', 'Manila', 'Lucena', 'Ozamis', 'Tuguegarao', 'Zamboanga', 'Tagaytay', 'Quezon City', 'Cebu City', 'Cotabato', 'Antipolo', 'San Jose']
 const photo = {
-  hero: 'https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?auto=format&fit=crop&w=2000&q=85',
+  get hero() { return readManagedContent().homeHeroImage },
   flower: 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=1200&q=85',
   chapel: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1200&q=85',
   garden: 'https://images.unsplash.com/photo-1497250681960-ef046c08a56e?auto=format&fit=crop&w=1200&q=85',
   cosmos: 'https://images.unsplash.com/photo-1494972308805-463bc619d34e?auto=format&fit=crop&w=1800&q=85',
 }
+const mainVocationStory: ManagedArticle = {
+  id: 'life-attracted-by-the-veil',
+  title: 'Attracted by the Veil',
+  author: 'Sr. Frances of the Immaculate Heart, OCD of Lipa Carmel',
+  body: [
+    'I was eight years old when I first saw the younger sister of my father in her religious habit. Sr. Flor, my aunt, was then a novice from the Religious of the Good Shepherd. It was her veil which immediately caught my attention and it led to a quiet conviction within me that someday I will also wear a veil like her.',
+    'Since then, when teachers asked about who I want to be when I grow up, I would always answer, “I want to be a nun.” I remember my classmates teasingly call me “Sr. Frances.” That strong attraction somehow faded after my elementary days.',
+    'As a teenager I was engrossed in my attraction in arts. I joined competitions and won several times in different places. I began seeing myself more as a cartoonist or a professional artist than a nun.',
+    'I later finished AB Fine Arts in the College of the Holy Spirit in Manila as an intern student. I am from Batangas City and my parents opted that I live inside the campus with the Sisters and other boarding students for the next four years of my college life. (An experience which unknowingly prepared me to be a cloistered nun years later.)',
+    'I was in second year college when I joined the campus vigil with other students in solidarity with the anti-charter change advocacy. In that vigil the film “Brother Sun, Sister Moon” was shown. I was so mesmerized by the life of Saint Francis of Assisi that I kept thinking about it long after I had seen the film. There was something in Saint Francis’ life that made me deeply realize the kind of life that is meant for me. I knew immediately where my true happiness lies.',
+    'Our Lord used the movie, “Brother Sun, Sister Moon” in leading me back to my desire to enter the religious life. The desire has changed from how it felt when I was in grade school. There was now a firm certainty and a deep focus. I knew with all my heart that God was “calling” me. It was persistent and would haunt me day and night.',
+    'I prayed and told our Lord to show me where He wanted me to enter. I wanted it to come from Him as an assurance that the congregation would be his choice for me. I felt then that I was ready to stop my studies and immediately become a nun.',
+    'But nothing came. There was no sign at all. I graduated from college and while waiting for Our Lord’s inspiration I continued with my artworks. I had a painting exhibit in Batangan Plaza and De la Salle Lipa.',
+    'I eventually worked for a short time as a caricature artist in Avon Batangas and was given another opportunity to have an exhibit in one of Avon’s seminars in Calatagan Batangas. I even joined a barangay beauty pageant as I did not want to hurt our barangay captain in saying no.',
+    'I was 21 years old in the great jubilee year 2000 when the relics of Saint Therese of the Child Jesus visited our parish for the first time. It was a visit from a great Saint that changed my life. As soon as I saw the reliquary of the relics, I felt a certain shower of strong love from above that made me cry hard throughout the mass. It was my first time to experience that kind of feeling.',
+    'Cardinal Gaudencio Rosales, the then Archbishop of Batangas, was the homilist. He shared about the life in Carmel. God finally revealed to me that He wanted me in Carmel. That evening, I told my parents of my decision to become a Carmelite.',
+    'I was an only girl with four brothers in our family and I understood how my parents reacted the night I shared with them my decision. They were against it and my father said, “Are you going crazy? If you enter Carmel, we will consider you as dead already.”',
+    'Few days later my father told me that he simply found me too young for such a discernment. He also wanted me to spend more time with them family as I was just 21 years old. He added that, if ever I enter the religious life, he wants me to join the Religious of the Good Shepherd like my aunt. My mother was more open about my plans and quietly prayed for God’s will.',
+    'I tried to explain my side to them only once and then I decided not to speak about it anymore. Now and then it would be mentioned by my parents and all I could do was to cry. It was a very difficult time for me, but I carefully treasured the grace I received when the relics of Saint Therese visited our parish.',
+    'After some months, in prayer before the Holy Trinity image of the Jubilee Cross, I told Our Lord, “Just a word of ‘okay’ or ‘sige na’ from Papa, I will consider it as Your time for me to already apply in Carmel.”',
+    'I was still in prayer when Papa called me. He was sleepy. It was a form of lambing that he would usually place his head on my lap whenever I was at home. I would then gently stroke his hair as he slept. As I was stroking his hair I started crying again and my tears fell on his face. He opened his eyes, looked at me and he said, “Umiiyak ka na naman….sige na.”',
+    'I was overjoyed with what I heard from Papa. It was the answer to my prayer just before Papa called me. With more tears I returned to prayer when he was already asleep. I knelt again before the Jubilee Cross filled with thanksgiving and peace.',
+    'I immediately recounted everything to Papa when he woke up and he finally gave me his blessing to already apply to Carmel.',
+  ].join('\n\n'),
+  image: attractedByTheVeilImage,
+}
+const mainVocationStorySeedKey = 'carmel-main-vocation-story-full-v2'
+const defaultManagedContent: ManagedSiteContent = {
+  homeHeroImage: 'https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?auto=format&fit=crop&w=2000&q=85',
+  monasteries: monasteryCities.map((city, index) => ({ id: `monastery-${index}`, name: `Carmel of ${city}`, city, description: `A Carmelite community in ${city}, Philippines.`, projectTitle: '', projectDetails: '', image: [photo.chapel, photo.garden, photo.flower][index % 3] })),
+  carmelife: [
+    mainVocationStory,
+    { id: 'life-listening', title: 'A heart that learned to listen', author: 'A sister of Carmel', body: 'A vocation often begins quietly: in prayer, in the ordinary work of each day, and in the growing desire to give one’s life to God.', image: photo.garden },
+    { id: 'life-home', title: 'Finding home in the silence', author: 'A sister of Carmel', body: 'Silence is not an absence of life. It is a place to listen, to receive, and to discover the freedom of belonging to God and to a community.', image: photo.flower },
+    { id: 'life-ordinary', title: 'The joy of ordinary days', author: 'A sister of Carmel', body: 'Prayer, work, and sisterhood shape the daily rhythm of Carmel. Grace is found in showing up faithfully, together.', image: photo.chapel },
+  ],
+  carmelights: [
+    { id: 'saint-teresa', title: 'Prayer as friendship', author: 'St. Teresa of Avila', body: 'St. Teresa teaches that prayer grows through a loving friendship with God, patiently nurtured in the midst of everyday life.', image: photo.garden },
+    { id: 'saint-john', title: 'The freedom of love', author: 'St. John of the Cross', body: 'St. John of the Cross points toward a love that loosens our hold on what keeps the heart from becoming freely available to God.', image: photo.chapel },
+    { id: 'saint-therese', title: 'The little way', author: 'St. Thérèse of Lisieux', body: 'St. Thérèse shows how small acts, offered with trust and love, can become a wholehearted response to God.', image: photo.flower },
+  ],
+}
+function readManagedContent(): ManagedSiteContent {
+  try {
+    const stored = JSON.parse(localStorage.getItem(managedContentKey) || 'null') as Partial<ManagedSiteContent> | null
+    const content = { ...defaultManagedContent, ...stored, monasteries: stored?.monasteries || defaultManagedContent.monasteries, carmelife: stored?.carmelife || defaultManagedContent.carmelife, carmelights: stored?.carmelights || defaultManagedContent.carmelights }
+    if (stored && localStorage.getItem(mainVocationStorySeedKey) !== 'true') {
+      const existingIndex = content.carmelife.findIndex((article) => article.id === mainVocationStory.id)
+      if (existingIndex < 0) content.carmelife = [mainVocationStory, ...content.carmelife]
+      else content.carmelife[existingIndex] = mainVocationStory
+      localStorage.setItem(managedContentKey, JSON.stringify(content))
+      localStorage.setItem(mainVocationStorySeedKey, 'true')
+    }
+    return content
+  } catch { return defaultManagedContent }
+}
+function saveManagedContent(content: ManagedSiteContent) {
+  try { localStorage.setItem(managedContentKey, JSON.stringify(content)) } catch { return false }
+  window.dispatchEvent(new Event(managedContentEvent))
+  return true
+}
+function useManagedContent() {
+  const [content, setContent] = useState<ManagedSiteContent>(readManagedContent)
+  useEffect(() => {
+    const refresh = () => setContent(readManagedContent())
+    window.addEventListener('storage', refresh)
+    window.addEventListener(managedContentEvent, refresh)
+    return () => { window.removeEventListener('storage', refresh); window.removeEventListener(managedContentEvent, refresh) }
+  }, [])
+  return content
+}
 const money = (n: number) => new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(n)
+const memberSessionKey = 'carmel-member-session'
+const memberSessionUpdatedEvent = 'carmel-member-session-updated'
+const directThreadsUpdatedEvent = 'carmel-direct-threads-updated'
+const memberPrivacyVersion = '2026-10-02'
+type MemberAccount = { id: string; name: string; email: string; phone?: string; address?: string; role: 'USER'; prototype?: boolean }
+type MemberDonation = { referenceCode: string; amount: number; paymentMethod: string; status: string; createdAt: string; fund: string }
+type DiscernmentStage = 'EXPLORING' | 'PRAYING_AND_LEARNING' | 'READY_TO_VISIT' | 'IN_CONVERSATION'
+type MemberDiscernment = { monastery: string; stage: DiscernmentStage; note: string; updatedAt?: string }
+const discernmentStages: Array<{ id: DiscernmentStage; label: string; description: string }> = [
+  { id: 'EXPLORING', label: 'Exploring', description: 'Learning about the Carmelite way of life.' },
+  { id: 'PRAYING_AND_LEARNING', label: 'Praying and learning', description: 'Taking time for prayer, reflection, and conversation.' },
+  { id: 'READY_TO_VISIT', label: 'Ready to visit', description: 'Preparing to meet a community in person.' },
+  { id: 'IN_CONVERSATION', label: 'In conversation', description: 'Discerning with a Carmelite community.' },
+]
+const discernmentUpdatedEvent = 'carmel-discernment-updated'
+function normalizeDiscernmentStage(stage: string): DiscernmentStage {
+  const normalized = stage.toUpperCase().replaceAll(' ', '_')
+  if (normalized === 'IN_CONVERSATION_WITH_A_COMMUNITY') return 'IN_CONVERSATION'
+  if (normalized === 'PRAYING_AND_LEARNING' || normalized === 'READY_TO_VISIT' || normalized === 'IN_CONVERSATION') return normalized
+  return 'EXPLORING'
+}
+function readMemberSession(): MemberAccount | null {
+  try { const account = JSON.parse(localStorage.getItem(memberSessionKey) || 'null') as MemberAccount | null; return account?.role === 'USER' ? account : null } catch { return null }
+}
+function saveMemberSession(account: MemberAccount | null) {
+  if (account) localStorage.setItem(memberSessionKey, JSON.stringify(account))
+  else localStorage.removeItem(memberSessionKey)
+  window.dispatchEvent(new Event(memberSessionUpdatedEvent))
+}
+function memberDonationKey(email: string) { return `carmel-member-donations:${email.toLowerCase()}` }
+function memberFavoriteKey(email: string) { return `carmel-member-favorites:${email.toLowerCase()}` }
+function memberDiscernmentKey(email: string) { return `carmel-member-discernment:${email.toLowerCase()}` }
+function moveMemberData(oldEmail: string, newEmail: string) {
+  if (oldEmail.toLowerCase() === newEmail.toLowerCase()) return
+  const entries = [[memberDonationKey(oldEmail), memberDonationKey(newEmail)], [memberFavoriteKey(oldEmail), memberFavoriteKey(newEmail)], [memberDiscernmentKey(oldEmail), memberDiscernmentKey(newEmail)]]
+  for (const [oldKey, newKey] of entries) { const value = localStorage.getItem(oldKey); if (value !== null) { localStorage.setItem(newKey, value); localStorage.removeItem(oldKey) } }
+}
+function readMemberFavorites(email: string): string[] { try { return JSON.parse(localStorage.getItem(memberFavoriteKey(email)) || '[]') as string[] } catch { return [] } }
 
 function Brand({ light = false }: { light?: boolean }) {
   return <Link to="/" className={`brand ${light ? 'brand-light' : ''}`}><span className="brand-mark"><HandHeart size={21} /></span><span>Carmels in<br /><b>Communion</b></span></Link>
 }
+const staffSessionUpdatedEvent = 'carmel-staff-session-updated'
+type PublicProfile = { id: string; name: string; email: string; role: 'USER' | 'ADMIN' | 'FORMATOR'; prototype?: boolean }
+function readPublicProfile(): PublicProfile | null {
+  const member = readMemberSession()
+  if (member) return member
+  const staff = readPrototypeSession()
+  return staff && (staff.role === 'ADMIN' || staff.role === 'FORMATOR') ? { id: staff.id, name: staff.name, email: staff.email, role: staff.role, prototype: true } : null
+}
 function Navbar() {
   const [open, setOpen] = useState(false)
-  return <header className="site-header"><Brand /><button className="mobile-menu icon-button" aria-label="Toggle menu" onClick={() => setOpen(!open)}>{open ? <X /> : <Menu />}</button><nav className={`main-nav ${open ? 'open' : ''}`}>{nav.map(([label, path]) => <NavLink key={path} to={path} end={path === '/'} onClick={() => setOpen(false)}>{label}</NavLink>)}</nav><div className="header-actions"><button className="search-trigger" aria-label="Search"><Search size={16} /></button><Link className="button button-dark button-small" to="/login">Sign in <ArrowUpRight size={14} /></Link></div></header>
+  const [profile, setProfile] = useState<PublicProfile | null>(readPublicProfile)
+  const [profileOpen, setProfileOpen] = useState(false)
+  const navigate = useNavigate()
+  useEffect(() => {
+    let active = true
+    const refresh = () => {
+      const localProfile = readPublicProfile()
+      if (localProfile) { setProfile(localProfile); return }
+      fetch('/api/auth/me', { credentials: 'include' }).then(async (response) => {
+        if (!response.ok) { if (active) setProfile(null); return }
+        const result = await response.json()
+        if (active && ['ADMIN', 'FORMATOR', 'USER'].includes(result.user?.role)) setProfile(result.user as PublicProfile)
+      }).catch(() => { if (active) setProfile(null) })
+    }
+    refresh()
+    window.addEventListener(memberSessionUpdatedEvent, refresh)
+    window.addEventListener(staffSessionUpdatedEvent, refresh)
+    window.addEventListener('storage', refresh)
+    return () => { active = false; window.removeEventListener(memberSessionUpdatedEvent, refresh); window.removeEventListener(staffSessionUpdatedEvent, refresh); window.removeEventListener('storage', refresh) }
+  }, [])
+  function signOut() {
+    if (profile?.role === 'USER') saveMemberSession(null)
+    else { localStorage.removeItem(prototypeSessionKey); window.dispatchEvent(new Event(staffSessionUpdatedEvent)) }
+    navigator.sendBeacon('/api/auth/logout')
+    setProfileOpen(false)
+    navigate('/')
+  }
+  return <header className="site-header"><Brand /><button className="mobile-menu icon-button" aria-label="Toggle menu" onClick={() => setOpen(!open)}>{open ? <X /> : <Menu />}</button><nav className={`main-nav ${open ? 'open' : ''}`}>{nav.map(([label, path]) => <NavLink key={path} to={path} end={path === '/'} onClick={() => setOpen(false)}>{label}</NavLink>)}</nav><div className="header-actions"><button className="search-trigger" aria-label="Search"><Search size={16} /></button>{profile ? <div className="member-profile-control"><button className="member-profile-trigger" type="button" aria-haspopup="menu" aria-expanded={profileOpen} onClick={() => setProfileOpen(!profileOpen)}><i>{profile.name[0]?.toUpperCase()}</i><span>{profile.name}<small>{profile.role === 'USER' ? 'My profile' : profile.role === 'ADMIN' ? 'Administrator' : 'Formator'}</small></span><ChevronDown size={14} /></button>{profileOpen && <div className="member-profile-dropdown" role="menu">{profile.role === 'USER' ? <><Link to="/account" role="menuitem" onClick={() => setProfileOpen(false)}><User size={15} />Profile details</Link><Link to="/account/donations" role="menuitem" onClick={() => setProfileOpen(false)}><HandHeart size={15} />Donation history</Link><Link to="/account/discernment" role="menuitem" onClick={() => setProfileOpen(false)}><Heart size={15} />Discernment</Link><Link to="/account/security" role="menuitem" onClick={() => setProfileOpen(false)}><ShieldCheck size={15} />Security & privacy</Link><Link to="/account/messages" role="menuitem" onClick={() => setProfileOpen(false)}><MessageCircle size={15} />Messages</Link><Link to="/account/favorites" role="menuitem" onClick={() => setProfileOpen(false)}><Heart size={15} />Favorite teachings</Link></> : <Link to="/admin" role="menuitem" onClick={() => setProfileOpen(false)}><Home size={15} />Open dashboard</Link>}<button type="button" role="menuitem" onClick={signOut}><LogOut size={15} />Sign out</button></div>}</div> : <Link className="button button-dark button-small" to="/account/login">Sign in <ArrowUpRight size={14} /></Link>}</div></header>
 }
 function Footer() {
   return <footer className="site-footer"><div className="footer-main"><div className="footer-about"><Brand light /><p>A communion of Carmelite monasteries, living the Teresian charism in the heart of the Church.</p></div><div><h3>Explore</h3><Link to="/about">About us</Link><Link to="/monasteries">Our monasteries</Link><Link to="/updates">News & updates</Link></div><div><h3>Connect with us</h3><a href="tel:+639214192267">0921 419 2267</a><a href="mailto:ocdnuns.vocpromph@gmail.com">ocdnuns.vocpromph@gmail.com</a><a href="https://facebook.com">Carmels in Communion on Facebook</a></div><div><h3>Our location</h3><p>Brgy. Tongohin, Purok Nagsusumikap<br />Karmelo, Infanta, Quezon</p><Link to="/contact">Contact us <ArrowUpRight size={14} /></Link></div></div><div className="footer-bottom"><span>© 2026 Philippine Federation of Discalced Carmelite Nuns</span><span>Data Privacy Act of 2012 · Terms of Service · Privacy Policy</span></div></footer>
 }
-function PublicLayout({ children }: { children: ReactNode }) { return <><Navbar /><main>{children}</main><Footer /></> }
+function ContactNotifier() {
+  const [conversation, setConversation] = useState<{ name: string; messages: Array<{ sender: 'VISITOR' | 'STAFF'; body: string; time?: string }> } | null>(() => { try { return JSON.parse(localStorage.getItem('carmel-contact-conversation') || 'null') } catch { return null } })
+  const [open, setOpen] = useState(false)
+  const [draft, setDraft] = useState('')
+  const staffMessages = conversation?.messages.filter((message) => message.sender === 'STAFF') || []
+  const [seenCount, setSeenCount] = useState(() => Number(localStorage.getItem('carmel-contact-seen') || 0))
+  const unread = Math.max(0, staffMessages.length - seenCount)
+  useEffect(() => {
+    function refresh() { try { setConversation(JSON.parse(localStorage.getItem('carmel-contact-conversation') || 'null')); setSeenCount(Number(localStorage.getItem('carmel-contact-seen') || 0)) } catch { setConversation(null) } }
+    window.addEventListener('storage', refresh)
+    window.addEventListener('carmel-conversation-updated', refresh)
+    return () => { window.removeEventListener('storage', refresh); window.removeEventListener('carmel-conversation-updated', refresh) }
+  }, [])
+  function toggle() { const nextOpen = !open; setOpen(nextOpen); if (nextOpen && staffMessages.length) { localStorage.setItem('carmel-contact-seen', String(staffMessages.length)); setSeenCount(staffMessages.length) } }
+  function sendReply(event: FormEvent<HTMLFormElement>) { event.preventDefault(); const body = draft.trim(); if (!body || !conversation) return; const next = { ...conversation, messages: [...conversation.messages, { sender: 'VISITOR' as const, body, time: 'Just now' }] }; setConversation(next); setDraft(''); localStorage.setItem('carmel-contact-conversation', JSON.stringify(next)); window.dispatchEvent(new Event('carmel-conversation-updated')) }
+  return <div className="contact-notifier"><button className="contact-notifier-button" onClick={toggle} aria-label={unread ? `${unread} unread message${unread === 1 ? '' : 's'}` : 'Open messages'}><MessageCircle size={22} />{unread > 0 && <span>{unread > 9 ? '9+' : unread}</span>}</button>{open && <div className="contact-notifier-popover"><div className="notifier-head"><div><span className="eyebrow">CARMEL SUPPORT</span><b>Messages</b></div><button onClick={toggle} aria-label="Close messages"><X size={16} /></button></div>{conversation ? <><div className="notifier-messages">{conversation.messages.map((message, index) => <div className={`notifier-message ${message.sender.toLowerCase()}`} key={`${message.time || 'message'}-${index}`}><b>{message.sender === 'STAFF' ? 'Federation office' : conversation.name}</b><p>{message.body}</p><small>{message.time || 'Just now'}</small></div>)}</div><form className="notifier-compose" onSubmit={sendReply}><input value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Write a reply..." aria-label="Write a message" /><button className="button button-dark" type="submit" aria-label="Send message"><ArrowRight size={14} /></button></form><Link className="notifier-new" to="/contact">Start a new conversation</Link></> : <><p className="notifier-preview">Have a question for the Federation?</p><Link className="button button-dark notifier-link" to="/contact">Start a conversation <ArrowRight size={14} /></Link></>}</div>}</div>
+}
+function PublicLayout({ children }: { children: ReactNode }) { return <><Navbar /><main>{children}</main><ContactNotifier /><Footer /></> }
 function HomePage() {
-  const cards = [{ label: 'WHO WE ARE', title: 'The Federation', to: '/about', img: photo.chapel }, { label: 'OUR WAY OF LIFE', title: 'Vocation & Charism', to: '/carmelife', img: photo.garden }, { label: 'SISTERS’ STORIES', title: 'Vocation Stories', to: '/carmelights', img: photo.flower }, { label: 'FROM THE FEDERATION', title: 'News & Updates', to: '/updates', img: photo.cosmos }, { label: 'FIND YOUR CARMEL', title: 'Our Communities', to: '/monasteries', img: photo.hero }]
+  useManagedContent()
+  const cards = [{ label: 'WHO WE ARE', title: 'The Federation', to: '/about', img: photo.chapel }, { label: 'OUR WAY OF LIFE', title: 'Vocation & Charism', to: '/carmelife', img: photo.garden }, { label: 'SAINTS’ TEACHINGS', title: 'Wisdom of the Saints', to: '/carmelights', img: photo.flower }, { label: 'FROM THE FEDERATION', title: 'News & Updates', to: '/updates', img: photo.cosmos }, { label: 'FIND YOUR CARMEL', title: 'Our Communities', to: '/monasteries', img: photo.hero }]
   return <><section className="home-hero" style={{ backgroundImage: `linear-gradient(90deg,rgba(37,28,21,.19),rgba(37,28,21,.03)),url(${photo.hero})` }}><div className="hero-content"><span className="eyebrow eyebrow-light">A HOME FOR THE SEEKING HEART</span><h1>Carmels in<br /><em>Communion</em></h1><p>Welcome to the Philippine Federation of Discalced Carmelite Nuns, a family of communities sharing one contemplative heart.</p><div className="hero-buttons"><Link className="button button-gold" to="/about">Explore our story <ArrowRight size={16} /></Link><Link className="button button-glass" to="/monasteries">Meet our monasteries</Link></div></div><div className="hero-caption"><span>“Let nothing disturb you, let nothing frighten you.”</span><small>ST. TERESA OF AVILA</small></div></section><section className="marquee-wrap"><div className="marquee-label">Philippine Federation<br />of Discalced Carmelite Nuns</div><div className="marquee-window"><div className="marquee-track">{[...cities, ...cities].map((city, i) => <span key={`${city}-${i}`}>{city}<i>·</i></span>)}</div></div><ArrowRight size={18} /></section><section className="vocation-section section-wrap"><div className="vocation-image"><img src={photo.flower} alt="White flowers in a monastery garden" /><span className="image-note">A life held in prayer</span></div><div className="vocation-copy"><span className="eyebrow">A QUIET INVITATION</span><h2>Is <em>God</em> calling you to a life of prayer?</h2><p>There is a place for the listening heart. Discover the contemplative vocation and the sisters who make their home in Carmel.</p><Link className="text-link" to="/monasteries">Meet our monasteries <ArrowRight size={16} /></Link><div className="handwritten">Come and see <span>↗</span></div></div></section><section className="explore-section"><div className="section-wrap"><div className="section-heading-row"><div><span className="eyebrow">WALK WITH US</span><h2>Explore <em>Carmel</em></h2></div><p>Are you discerning if God is calling you to Carmel? Let us assist you.</p></div><div className="explore-grid">{cards.map((card) => <Link className="explore-card" key={card.title} to={card.to} style={{ backgroundImage: `linear-gradient(180deg,transparent 10%,rgba(35,26,20,.8)),url(${card.img})` }}><span>{card.label}</span><div><h3>{card.title}</h3><b>Learn more <ArrowRight size={14} /></b></div></Link>)}</div></div></section><section className="quote-banner" style={{ backgroundImage: `linear-gradient(90deg,rgba(43,32,24,.15),rgba(43,32,24,.78)),url(${photo.cosmos})` }}><div className="quote-content"><span className="quote-mark">“</span><p>Carmel is not merely a geographical place, but a sacred space in the cloister of the heart where the Carmelite nun encounters God.</p><Link className="button button-light" to="/contact">We’d love to hear from you <ArrowRight size={15} /></Link></div></section></>
 }
 const purposes = ['To respond to the desire of St. Teresa that her Carmels be bound together by evangelical friendship.', 'To realize the desire of the Church and the Order to have close beneficial ties among the member monasteries.', 'To help each other live more faithfully the Teresian ideal of the canonical contemplative life.', 'To facilitate communication and mutual assistance in formation, government, practical skills, material and economic needs, and transfer of nuns among member monasteries.']
 function AboutPage() {
-  return <><section className="page-intro section-wrap"><span className="eyebrow">A FAMILY OF COMMUNITIES</span><h1>About <em>Us</em></h1><p>The Philippine Federation of Discalced Carmelite Nuns is a structure of communion among its 23 Carmelite monastery members, who all embrace the Teresian Charism.</p><Link className="button button-dark" to="/contact">Talk to us <ArrowRight size={15} /></Link></section><section className="aim-band"><div className="aim-inner"><div className="aim-copy"><span className="eyebrow eyebrow-gold">OUR PURPOSE</span><h2>AIM</h2><p>The Federation aims to make visible the unity which Jesus prayed for among His disciples.</p></div><div className="aim-words"><span>Communion.</span><span>Collaboration.</span><span>Contemplation.</span><span>Mission.</span></div></div></section><section className="assembly section-wrap"><div className="assembly-image" style={{ backgroundImage: `url(${photo.hero})` }} /><p>14th General Assembly of the Philippine Federation of Discalced Carmelite Nuns · Mere Monique Home, La Paz, Iloilo City · November 7–12, 2022</p><div className="assembly-image assembly-image-short" style={{ backgroundImage: `url(${photo.chapel})` }} /><p>Elected Officers (2022–2024) with Father General Miguel Calle, OCD, Definitor Fr. Chris Surinono, OCD, and Religious Assistant Fr. Dan Lim, OCD</p></section><section className="purpose-section section-wrap"><div className="section-heading-row"><div><span className="eyebrow">THE FEDERATION</span><h2>Our <em>purposes</em></h2><span className="gold-rule" /></div><p>Four ways we help our communities remain close in friendship and in mission.</p></div><div className="purpose-grid">{purposes.map((text, i) => <article className="purpose-card" key={text}><img src={[photo.garden, photo.chapel, photo.flower, photo.cosmos][i]} alt="Carmelite monastery life" /><span>0{i + 1}</span><p>{text}</p></article>)}</div></section><section className="saint-quote"><img src={photo.flower} alt="White flowers" /><div><span>“</span><blockquote>All must be friends, all must be loved, all must be held dear, all must be helped.</blockquote><small>ST. TERESA OF AVILA · WAY OF PERFECTION 4:7</small></div></section></>
+  return <div className="about-redesign"><section className="about-hero section-wrap"><div className="about-hero-copy"><span className="eyebrow">A FAMILY OF COMMUNITIES</span><h1>About <em>Us</em></h1><p>The Philippine Federation of Discalced Carmelite Nuns is a structure of communion among its 23 Carmelite monastery members, who all embrace the Teresian Charism.</p><Link className="button button-dark" to="/contact">Talk to us <ArrowRight size={15} /></Link><div className="about-hero-note"><span>23</span><small>monasteries<br />one communion</small></div></div><div className="about-hero-art"><img src={photo.hero} alt="Carmelite sisters gathered in communion" /><span>One family, many Carmels</span></div></section><section className="about-values"><div className="section-wrap values-grid"><div><span className="eyebrow eyebrow-gold">THE TERESIAN CHARISM</span><h2>A life held<br /><em>in communion.</em></h2></div><p>We are sisters and communities learning to remain close: in prayer, in friendship, and in the shared work of making Christ’s love visible.</p><div className="value-list"><span>01 <b>Communion</b></span><span>02 <b>Collaboration</b></span><span>03 <b>Contemplation</b></span></div></div></section><section className="aim-band"><div className="aim-inner"><div className="aim-copy"><span className="eyebrow eyebrow-gold">OUR PURPOSE</span><h2>AIM</h2><p>The Federation aims to make visible the unity which Jesus prayed for among His disciples.</p></div><div className="aim-words"><span>Communion.</span><span>Collaboration.</span><span>Contemplation.</span><span>Mission.</span></div></div></section><section className="spirituality-section section-wrap"><div className="spirituality-intro"><span className="eyebrow">A DEEPER WAY</span><h2>What gives our<br /><em>life its shape?</em></h2><p>Behind every Carmel is a quiet spirituality: a way of prayer, friendship, and loving attention to God.</p></div><Link className="spirituality-card" to="/spirituality"><img src={photo.chapel} alt="Quiet chapel interior" /><span className="spirituality-card-overlay"><b>Our spirituality</b><small>Explore the heart of Carmel <ArrowUpRight size={15} /></small></span></Link></section><section className="assembly section-wrap"><div className="assembly-image assembly-image-feature" style={{ backgroundImage: `url(${photo.hero})` }} /><p>14th General Assembly of the Philippine Federation of Discalced Carmelite Nuns · Mere Monique Home, La Paz, Iloilo City · November 7–12, 2022</p><div className="assembly-image assembly-image-short" style={{ backgroundImage: `url(${photo.chapel})` }} /><p>Elected Officers (2022–2024) with Father General Miguel Calle, OCD, Definitor Fr. Chris Surinono, OCD, and Religious Assistant Fr. Dan Lim, OCD</p></section><section className="purpose-section section-wrap"><div className="section-heading-row"><div><span className="eyebrow">THE FEDERATION</span><h2>Our <em>purposes</em></h2><span className="gold-rule" /></div><p>Four ways we help our communities remain close in friendship and in mission.</p></div><div className="purpose-grid">{purposes.map((text, i) => <article className="purpose-card" key={text}><img src={[photo.garden, photo.chapel, photo.flower, photo.cosmos][i]} alt="Carmelite monastery life" /><span>0{i + 1}</span><p>{text}</p></article>)}</div></section><section className="saint-quote"><img src={photo.flower} alt="White flowers" /><div><span>“</span><blockquote>All must be friends, all must be loved, all must be held dear, all must be helped.</blockquote><small>ST. TERESA OF AVILA · WAY OF PERFECTION 4:7</small></div></section></div>
 }
-function MonasteriesPage() {
+
+function SpiritualityPage() {
+  return <section className="spirituality-page"><section className="spirituality-page-hero section-wrap"><div className="spirituality-page-hero-copy"><span className="eyebrow">OUR SPIRITUALITY</span><h1>A hidden life,<br /><em>offered in love.</em></h1><p>To enter Carmel is to learn the quiet art of staying with God: attentive, grateful, and available to love.</p><Link className="text-link" to="/contact">Speak with a sister <ArrowRight size={16} /></Link></div><div className="spirituality-page-image" style={{ backgroundImage: `url(${photo.garden})` }}><span>Prayer is the first work.</span></div></section><section className="spirituality-intro-band"><div className="section-wrap spirituality-intro-band-inner"><span className="spirituality-number">01</span><div><span className="eyebrow eyebrow-gold">THE HEART OF CARMEL</span><h2>Friendship with<br /><em>Christ.</em></h2></div><p>Prayer is not an escape from life. It is an intimate friendship that teaches us to see every person and every day with love.</p></div></section><section className="spirituality-story section-wrap"><div className="spirituality-story-image" style={{ backgroundImage: `url(${photo.chapel})` }} /><div className="spirituality-story-copy"><span className="eyebrow">A SCHOOL OF PRAYER</span><h2>Silence<br /><em>that listens.</em></h2><p>In the quiet of the cloister, we make room for God’s voice and carry the needs of the world into our prayer.</p><span className="spirituality-rule" /></div></section><section className="spirituality-community"><div className="section-wrap spirituality-community-inner"><div><span className="eyebrow eyebrow-gold">THE GIFT OF SISTERHOOD</span><h2>Love is learned<br /><em>together.</em></h2></div><p>We become contemplative together: forgiving, serving, and helping one another live the joy of the Gospel. Our community is where prayer becomes visible.</p><div className="spirituality-community-image" style={{ backgroundImage: `url(${photo.flower})` }} /></div></section><section className="spirituality-page-quote"><div className="section-wrap"><span>“</span><blockquote>Let nothing disturb you, let nothing frighten you; all things are passing. God never changes.</blockquote><small>ST. TERESA OF AVILA</small></div></section></section>
+}
+function LegacyMonasteriesPage() {
   const [query, setQuery] = useState('')
   const places = [...cities, 'Iloilo', 'Lipa', 'Manila', 'Lucena', 'Ozamis', 'Tuguegarao', 'Zamboanga', 'Tagaytay', 'Quezon City', 'Cebu City', 'Cotabato', 'Antipolo', 'San Jose']
   return <section className="content-page section-wrap"><span className="eyebrow">FIND A COMMUNITY</span><h1>Our <em>Monasteries</em></h1><p className="page-lead">Twenty-three communities, one contemplative family. Find a Carmel near you.</p><label className="field-search"><Search size={17} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by city" /></label><div className="monastery-grid">{places.filter((place) => place.toLowerCase().includes(query.toLowerCase())).map((place, i) => <article className="monastery-card" key={place}><img src={[photo.chapel, photo.garden, photo.hero][i % 3]} alt={`Monastery near ${place}`} /><div><span className="eyebrow">CARMEL IN THE PHILIPPINES</span><h3>Our Lady of {['Mount Carmel', 'the Rosary', 'Grace'][i % 3]}</h3><p>{place}, Philippines</p><a href="mailto:ocdnuns.vocpromph@gmail.com" className="text-link">Contact community <ArrowRight size={15} /></a></div></article>)}</div></section>
 }
-function StoryPage({ kind }: { kind: 'life' | 'stories' | 'updates' }) {
-  const title = kind === 'life' ? 'Carmelife' : kind === 'stories' ? 'Carmelights' : 'News & Updates'
-  const desc = kind === 'life' ? 'A contemplative life rooted in prayer, sisterhood, and the search for God.' : kind === 'stories' ? 'Small glimpses of vocation, friendship, and grace from our Carmelite sisters.' : 'The latest gatherings, reflections, and moments from the Federation.'
+function MonasteriesPage() {
+  void LegacyMonasteriesPage
+  const [query, setQuery] = useState('')
+  const content = useManagedContent()
+  const monasteries = content.monasteries.filter((monastery) => `${monastery.name} ${monastery.city} ${monastery.description} ${monastery.projectTitle}`.toLowerCase().includes(query.toLowerCase()))
+  return <section className="content-page section-wrap"><span className="eyebrow">FIND A COMMUNITY</span><h1>Our <em>Monasteries</em></h1><p className="page-lead">{content.monasteries.length} communities, one contemplative family. Find a Carmel near you.</p><label className="field-search"><Search size={17} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search by city or community" /></label><div className="monastery-grid">{monasteries.map((monastery) => <article className="monastery-card" key={monastery.id}><img src={monastery.image || photo.chapel} alt={`Carmelite community in ${monastery.city}`} /><div><span className="eyebrow">CARMEL IN THE PHILIPPINES</span><h3>{monastery.name}</h3><p>{monastery.city}, Philippines</p><p>{monastery.description}</p>{monastery.projectTitle && <div className="monastery-project"><b>{monastery.projectTitle}</b><p>{monastery.projectDetails}</p></div>}<a href="mailto:ocdnuns.vocpromph@gmail.com" className="text-link">Contact community <ArrowRight size={15} /></a></div></article>)}</div>{monasteries.length === 0 && <p className="content-empty">No communities match that search.</p>}</section>
+}
+type SiteUpdate = { id: string; title: string; date: string; category: string; image: string; body: string }
+const defaultSiteUpdates: SiteUpdate[] = [{ id: 'assembly-2026', title: '14th General Assembly', date: 'September 24, 2026', category: 'Federation events', image: photo.garden, body: 'The Federation gathered in communion for its 14th General Assembly at Mere Monique Home in La Paz, Iloilo City. Sisters shared prayer, listened to one another, and renewed the mission entrusted to every Carmel.' }, { id: 'renewal-2026', title: 'A season of prayer and renewal', date: 'September 12, 2026', category: 'Reflections', image: photo.flower, body: 'Across our monasteries, a season of prayer and renewal has invited each community to return to the quiet center of its vocation. In the ordinary rhythm of work and worship, grace continues to make a home.' }, { id: 'mission-2026', title: 'Remembering our shared mission', date: 'August 30, 2026', category: 'Community life', image: photo.chapel, body: 'We remember the shared mission that joins every Carmel: to seek God together, to hold the Church in prayer, and to make the love of Christ visible through a hidden life.' }]
+const prototypeUpdatesKey = 'carmel-prototype-updates'
+function readSiteUpdates(): SiteUpdate[] { try { const stored = JSON.parse(localStorage.getItem(prototypeUpdatesKey) || 'null') as SiteUpdate[] | null; return stored?.length ? stored : defaultSiteUpdates } catch { return defaultSiteUpdates } }
+function LegacyStoryPage({ kind }: { kind: 'life' | 'stories' | 'updates' }) {
+  const [selectedArticle, setSelectedArticle] = useState<string | null>(null)
+  const [query, setQuery] = useState('')
+  const [category, setCategory] = useState('All categories')
+  const [sort, setSort] = useState('Newest first')
+  const title = kind === 'life' ? 'Carmelife' : kind === 'stories' ? 'Carmelights' : 'Carmelinks'
+  const desc = kind === 'life' ? 'A contemplative life rooted in prayer, sisterhood, and the search for God.' : kind === 'stories' ? 'Small glimpses of vocation, friendship, and grace from our Carmelite sisters.' : 'News, reflections, and shared moments from the Carmels in our communion.'
   const articles = kind === 'life' ? ['A day in Carmel', 'Prayer at the heart of the Church', 'The Teresian charism'] : kind === 'stories' ? ['A heart that learned to listen', 'Finding home in the silence', 'The joy of ordinary days'] : ['14th General Assembly', 'A season of prayer and renewal', 'Remembering our shared mission']
-  return <section className="content-page section-wrap"><span className="eyebrow">{kind === 'life' ? 'A CONTEMPLATIVE WAY' : kind === 'stories' ? 'VOICES FROM CARMEL' : 'FROM OUR COMMUNITIES'}</span><h1>{title}</h1><p className="page-lead">{desc}</p><div className="story-grid">{articles.map((article, i) => <article className="story-card" key={article}><img src={[photo.garden, photo.flower, photo.chapel][i]} alt="A glimpse of Carmelite life" /><div><span className="eyebrow">{kind === 'updates' ? 'FEDERATION NEWS' : 'CARMELITE LIFE'}</span><h3>{article}</h3><p>In the quiet rhythm of community life, every day offers a new way to listen and to love.</p><a className="text-link" href="#read">Read story <ArrowRight size={15} /></a></div></article>)}</div></section>
+  const [updates, setUpdates] = useState<SiteUpdate[]>(readSiteUpdates)
+  useEffect(() => { const refresh = () => setUpdates(readSiteUpdates()); window.addEventListener('storage', refresh); window.addEventListener('carmel-updates-updated', refresh); return () => { window.removeEventListener('storage', refresh); window.removeEventListener('carmel-updates-updated', refresh) } }, [])
+  if (kind === 'updates') {
+    const visibleUpdates = updates.filter((update) => (category === 'All categories' || update.category === category) && `${update.title} ${update.category}`.toLowerCase().includes(query.toLowerCase())).sort((a, b) => sort === 'Newest first' ? Date.parse(b.date) - Date.parse(a.date) : sort === 'Oldest first' ? Date.parse(a.date) - Date.parse(b.date) : a.title.localeCompare(b.title))
+    const selectedUpdate = updates.find((update) => update.title === selectedArticle)
+    return <section className="content-page section-wrap updates-page"><div className="updates-header"><div><span className="eyebrow">FROM OUR COMMUNITIES</span><h1>{title}</h1><p>{desc}</p></div><span className="updates-count">{visibleUpdates.length} {visibleUpdates.length === 1 ? 'post' : 'posts'}</span></div><div className="updates-toolbar"><label className="updates-search"><Search size={18} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search updates" aria-label="Search updates" /></label><label className="updates-select"><span>Category</span><select value={category} onChange={(event) => setCategory(event.target.value)}><option>All categories</option><option>Federation events</option><option>Reflections</option><option>Community life</option></select></label><label className="updates-select"><span>Sort by</span><select value={sort} onChange={(event) => setSort(event.target.value)}><option>Newest first</option><option>Oldest first</option><option>Title A-Z</option></select></label></div>{visibleUpdates.length ? <div className="updates-grid">{visibleUpdates.map((update) => <article className="update-post" key={update.id}>{update.image ? <img src={update.image} alt="Carmelite community life" /> : <div className="update-no-image"><HandHeart size={30} /><span>Carmels in<br />Communion</span></div>}<div className="update-post-body"><div className="update-post-meta"><span>{update.category}</span><time dateTime={new Date(update.date).toISOString()}>{update.date}</time></div><h2>{update.title}</h2><p>{update.body}</p><button className="button button-outline" onClick={() => setSelectedArticle(update.title)}>View more <ArrowRight size={15} /></button></div></article>)}</div> : <div className="updates-empty"><Search size={25} /><h2>No updates found</h2><p>Try a different search or category.</p></div>}{selectedUpdate && <div className="story-modal-backdrop" role="presentation" onClick={() => setSelectedArticle(null)}><article className="story-modal" role="dialog" aria-modal="true" aria-labelledby="story-modal-title" onClick={(event) => event.stopPropagation()}><button className="story-modal-close" onClick={() => setSelectedArticle(null)} aria-label="Close update"><X size={20} /></button>{selectedUpdate.image ? <img src={selectedUpdate.image} alt="Carmelite community life" /> : <div className="story-modal-no-image"><HandHeart size={34} /></div>}<div className="story-modal-body"><span className="eyebrow">{selectedUpdate.category.toUpperCase()} · {selectedUpdate.date}</span><h2 id="story-modal-title">{selectedUpdate.title}</h2><p>{selectedUpdate.body}</p><p>In the quiet rhythm of community life, every gathering becomes an invitation to listen, to give thanks, and to walk together in hope.</p><button className="button button-dark" onClick={() => setSelectedArticle(null)}>Close update</button></div></article></div>}</section>
+  }
+  return <section className="content-page section-wrap"><div className="story-page-intro"><div><span className="eyebrow">{kind === 'life' ? 'A CONTEMPLATIVE WAY' : 'VOICES FROM CARMEL'}</span><h1>{title}</h1></div><p className="page-lead">{desc}</p></div><div className="story-grid">{articles.map((article, i) => <article className="story-card" key={article}><img src={[photo.garden, photo.flower, photo.chapel][i]} alt="A glimpse of Carmelite life" /><div><span className="eyebrow">CARMELITE LIFE</span><h3>{article}</h3><p>In the quiet rhythm of community life, every day offers a new way to listen and to love.</p><a className="text-link" href="#read">Read story <ArrowRight size={15} /></a></div></article>)}</div></section>
+}
+function StoryPage({ kind }: { kind: 'life' | 'stories' | 'updates' }) {
+  const content = useManagedContent()
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [fullView, setFullView] = useState(false)
+  const member = readMemberSession()
+  const navigate = useNavigate()
+  const [favorites, setFavorites] = useState<string[]>(() => member ? readMemberFavorites(member.email) : [])
+  if (kind === 'updates') return <LegacyStoryPage kind={kind} />
+  const isLife = kind === 'life'
+  const articles = isLife ? content.carmelife : content.carmelights
+  const selected = articles.find((article) => article.id === selectedId)
+  const title = isLife ? 'Carmelife' : 'Carmelights'
+  const desc = isLife ? 'Vocation stories and glimpses of a contemplative life rooted in prayer and sisterhood.' : 'Teachings from Carmelite saints for the life of prayer and the journey of faith.'
+  function toggleFavorite(id: string) {
+    if (!member) { navigate('/account/login'); return }
+    const next = favorites.includes(id) ? favorites.filter((favorite) => favorite !== id) : [...favorites, id]
+    setFavorites(next)
+    localStorage.setItem(memberFavoriteKey(member.email), JSON.stringify(next))
+  }
+  function closeStory() { setSelectedId(null); setFullView(false) }
+  return <section className="content-page section-wrap"><div className="story-page-intro"><div><span className="eyebrow">{isLife ? 'VOICES FROM CARMEL' : 'WISDOM OF THE SAINTS'}</span><h1>{title}</h1></div><p className="page-lead">{desc}</p></div><div className="story-grid">{articles.map((article) => <article className="story-card" key={article.id}><img src={article.image || (isLife ? photo.garden : photo.chapel)} alt={article.title} />{!isLife && <button type="button" className={`favorite-teaching ${favorites.includes(article.id) ? 'saved' : ''}`} onClick={() => toggleFavorite(article.id)} aria-label={favorites.includes(article.id) ? `Remove ${article.title} from favorites` : `Save ${article.title} to favorites`} title={favorites.includes(article.id) ? 'Remove from favorites' : 'Save teaching'}><Heart size={17} fill={favorites.includes(article.id) ? 'currentColor' : 'none'} /></button>}<div><span className="eyebrow">{article.author || (isLife ? 'VOCATION STORY' : 'CARMELITE SAINT')}</span><h3>{article.title}</h3><p>{article.body.split(/\n\s*\n/)[0]}</p><button className="text-link story-read-button" onClick={() => { setSelectedId(article.id); setFullView(false) }}>Read story <ArrowRight size={15} /></button></div></article>)}</div>{articles.length === 0 && <p className="content-empty">New entries will appear here when published.</p>}{selected && <div className={`story-modal-backdrop ${fullView ? 'story-modal-backdrop-full-view' : ''}`} role="presentation" onClick={closeStory}><article className={`story-modal ${fullView ? 'story-modal-full-view' : ''}`} role="dialog" aria-modal="true" aria-label={selected.title} onClick={(event) => event.stopPropagation()}><button className="story-modal-close" onClick={closeStory} aria-label="Close story"><X size={18} /></button><img src={selected.image || (isLife ? photo.garden : photo.chapel)} alt={selected.title} /><div className="story-modal-body"><span className="eyebrow">{selected.author}</span><h2>{selected.title}</h2><div className="story-full-copy">{selected.body.split(/\n\s*\n/).map((paragraph, index) => <p key={index}>{paragraph}</p>)}</div><button className="button button-outline story-full-view-toggle" onClick={() => setFullView(!fullView)}>{fullView ? 'Return to story preview' : 'Read in full view'} <Maximize2 size={15} /></button></div></article></div>}</section>
 }
 function ContactPage() {
-  const [sent, setSent] = useState(false)
   const [error, setError] = useState('')
   const [sending, setSending] = useState(false)
   async function submitContact(event: FormEvent<HTMLFormElement>) {
@@ -58,15 +274,23 @@ function ContactPage() {
     try {
       const response = await fetch('/api/contact', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, email: values.get('email'), category: values.get('category'), subject: `Website message from ${name}`, message: values.get('message') }) })
       const result = await response.json()
-      if (!response.ok) throw new Error(result.error || 'Your message could not be sent.')
-      setSent(true)
+      if (!response.ok) throw new Error(result.error || 'The connected message service is unavailable.')
+      const message = String(values.get('message') || '')
+      const nextConversation = { name, messages: [{ sender: 'VISITOR' as const, body: message, time: 'Just now' }] }
+      localStorage.setItem('carmel-contact-conversation', JSON.stringify(nextConversation))
+      localStorage.setItem('carmel-contact-seen', '0')
+      window.dispatchEvent(new Event('carmel-conversation-updated'))
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'The message service is unavailable. Please try again.')
+      const message = String(values.get('message') || '')
+      const nextConversation = { name, messages: [{ sender: 'VISITOR' as const, body: message, time: 'Just now' }] }
+      localStorage.setItem('carmel-contact-conversation', JSON.stringify(nextConversation))
+      localStorage.setItem('carmel-contact-seen', '0')
+      window.dispatchEvent(new Event('carmel-conversation-updated'))
     } finally {
       setSending(false)
     }
   }
-  return <section className="contact-page section-wrap"><div className="contact-copy"><span className="eyebrow">WE’RE HERE TO LISTEN</span><h1>Let’s <em>talk.</em></h1><p>Whether you have a question about Carmel, a donation, or your own discernment, you are welcome to write to us.</p><div className="contact-detail"><Mail size={18} /><span><b>Email</b><br />ocdnuns.vocpromph@gmail.com</span></div><div className="contact-detail"><Smartphone size={18} /><span><b>Call or text</b><br />0921 419 2267</span></div></div><form className="contact-form" onSubmit={submitContact}>{sent ? <div className="success-state"><span><Check /></span><h2>Your message is with us.</h2><p>Thank you for reaching out. We’ll be in touch soon.</p><button className="text-link" type="button" onClick={() => setSent(false)}>Send another message</button></div> : <><label>Your name<input name="name" required minLength={2} placeholder="Name" /></label><label>Email address<input name="email" type="email" required placeholder="you@example.com" /></label><label>What would you like to talk about?<select name="category" defaultValue="GENERAL"><option value="GENERAL">A general question</option><option value="DISCERNER">Vocation discernment</option><option value="DONATION">A donation</option></select></label><label>Your message<textarea name="message" required minLength={10} rows={4} placeholder="Write your message here…" /></label>{error && <p className="form-error" role="alert">{error}</p>}<button className="button button-dark" type="submit" disabled={sending}>{sending ? 'Sending…' : <>Send message <ArrowRight size={16} /></>}</button></>}</form></section>
+  return <section className="contact-page section-wrap"><div className="contact-copy"><span className="eyebrow">WE’RE HERE TO LISTEN</span><h1>Let’s <em>talk.</em></h1><p>Start a new conversation with the Federation. Replies will appear in the message icon at the bottom of the page.</p><div className="contact-detail"><Mail size={18} /><span><b>Email</b><br />ocdnuns.vocpromph@gmail.com</span></div><div className="contact-detail"><Smartphone size={18} /><span><b>Call or text</b><br />0921 419 2267</span></div></div><form className="contact-form" onSubmit={submitContact}><label>Your name<input name="name" required minLength={2} placeholder="Name" /></label><label>Email address<input name="email" type="email" required placeholder="you@example.com" /></label><label>What would you like to talk about?<select name="category" defaultValue="GENERAL"><option value="GENERAL">A general question</option><option value="DISCERNER">Vocation discernment</option><option value="DONATION">A donation</option></select></label><label>Your message<textarea name="message" required minLength={10} rows={4} placeholder="Write your message here…" /></label>{error && <p className="form-error" role="alert">{error}</p>}<button className="button button-dark" type="submit" disabled={sending}>{sending ? 'Sending…' : <>Send message <ArrowRight size={16} /></>}</button></form></section>
 }
 
 type Donation = { amount: number; custom: string; frequency: 'ONE_TIME' | 'MONTHLY'; payment: 'GCASH' | 'MAYA' | 'BANK' | 'CARD'; anonymous: boolean; name: string; email: string; phone: string; receipt: boolean; reference: string }
@@ -92,6 +316,12 @@ function DonationsPage() {
       const result = await response.json()
       if (!response.ok) throw new Error(result.error || 'Your offering could not be recorded.')
       setReceiptCode(result.donation.referenceCode)
+      const member = readMemberSession()
+      if (member) {
+        const key = memberDonationKey(member.email)
+        const history = (() => { try { return JSON.parse(localStorage.getItem(key) || '[]') as MemberDonation[] } catch { return [] } })()
+        localStorage.setItem(key, JSON.stringify([{ referenceCode: result.donation.referenceCode, amount, paymentMethod: result.donation.paymentMethod, status: result.donation.status, createdAt: result.donation.createdAt, fund: giftLabels[giftAmounts.indexOf(amount)] || 'Federation formation program' }, ...history]))
+      }
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'The donation service is unavailable. Please try again.')
     }
@@ -113,16 +343,43 @@ function DonationsPage() {
     {!receiptCode && <div className="trust-row"><span><ShieldCheck />100% Direct to Monasteries</span><span><User />Anonymous Giving Supported</span><span><Smartphone />Helpline: (0921) 419-2267</span></div>}<section className="faq-section section-wrap"><span className="eyebrow">HERE TO HELP</span><h2>Frequently asked <em>questions</em></h2><p>Everything you need to know about giving, anonymity, GCash, and monthly sponsorship.</p><div className="faq-list">{faqs.map(([q, a], i) => <div className={`faq-item ${faqOpen === i ? 'open' : ''}`} key={q}><button onClick={() => setFaqOpen(faqOpen === i ? null : i)} aria-expanded={faqOpen === i}><span>{q}</span>{faqOpen === i ? <X size={17} /> : <ChevronDown size={17} />}</button>{faqOpen === i && <p>{a}</p>}</div>)}</div></section></div>
 }
 type StaffRole = 'ADMIN' | 'FORMATOR'
-type PrototypeStaff = { id: string; name: string; email: string; role: StaffRole; passwordHash: string }
+type PrototypeStaff = { id: string; name: string; email: string; role: StaffRole; passwordHash: string; isActive?: boolean; canManageUsers?: boolean; canManageDetails?: boolean; canManageUpdates?: boolean }
+type FormatorPermissionKey = 'canManageUsers' | 'canManageDetails' | 'canManageUpdates'
+type PermissionAction = 'GRANT' | 'REVOKE'
+type PendingPermission = { staff: PrototypeStaff[]; memberName: string; labels: string[]; action: PermissionAction }
 const prototypeStaffKey = 'carmel-prototype-staff'
 const prototypeSessionKey = 'carmel-prototype-session'
-const demoAdmin: PrototypeStaff = { id: 'prototype-admin', name: 'Demo Administrator', email: 'admin@carmel.test', role: 'ADMIN', passwordHash: '' }
+const prototypeUsersKey = 'carmel-prototype-users'
+const demoAdminProfileKey = 'carmel-prototype-admin-profile'
+const permissionRequestEvent = 'carmel-permission-requested'
+const staffUpdatedEvent = 'carmel-staff-updated'
+const demoAdmin: PrototypeStaff = { id: 'prototype-admin', name: 'Demo Administrator', email: 'admin@carmel.test', role: 'ADMIN', passwordHash: '', canManageUsers: true, canManageDetails: true }
+function readDemoAdmin(): PrototypeStaff { try { return { ...demoAdmin, ...JSON.parse(localStorage.getItem(demoAdminProfileKey) || '{}') as Partial<PrototypeStaff> } } catch { return demoAdmin } }
+type PrototypeUser = { id: string; name: string; email: string; phone?: string; address?: string; role: 'USER'; isBlocked: boolean; passwordHash?: string; createdAt?: string; privacyConsentAt?: string; privacyPolicyVersion?: string }
+const defaultPrototypeUsers: PrototypeUser[] = [{ id: 'visitor-1', name: 'Maria Santos', email: 'maria.santos@email.com', role: 'USER', isBlocked: false }, { id: 'visitor-2', name: 'Ana Reyes', email: 'ana.reyes@email.com', role: 'USER', isBlocked: false }]
+function readPrototypeUsers(): PrototypeUser[] { try { const stored = JSON.parse(localStorage.getItem(prototypeUsersKey) || 'null') as PrototypeUser[] | null; return stored || defaultPrototypeUsers } catch { return defaultPrototypeUsers } }
 
 function readPrototypeStaff(): PrototypeStaff[] {
-  try { return JSON.parse(localStorage.getItem(prototypeStaffKey) || '[]') as PrototypeStaff[] } catch { return [] }
+  try {
+    const staff = JSON.parse(localStorage.getItem(prototypeStaffKey) || '[]') as PrototypeStaff[]
+    let migrated = false
+    const updated = staff.map((member) => {
+      if (member.email.toLowerCase() === 'formator.demo@carmel.test' && typeof member.canManageUpdates !== 'boolean') {
+        migrated = true
+        return { ...member, canManageUpdates: true }
+      }
+      return member
+    })
+    if (migrated) localStorage.setItem(prototypeStaffKey, JSON.stringify(updated))
+    return updated
+  } catch { return [] }
 }
 function readPrototypeSession(): PrototypeStaff | null {
-  try { return JSON.parse(localStorage.getItem(prototypeSessionKey) || 'null') as PrototypeStaff | null } catch { return null }
+  try {
+    const session = JSON.parse(localStorage.getItem(prototypeSessionKey) || 'null') as PrototypeStaff | null
+    if (session?.role === 'FORMATOR') return readPrototypeStaff().find((member) => member.id === session.id) || session
+    return session
+  } catch { return null }
 }
 async function hashPrototypePassword(password: string) {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(password))
@@ -131,6 +388,7 @@ async function hashPrototypePassword(password: string) {
 
 function LoginPage() {
   const navigate = useNavigate()
+  const demoProfile = readDemoAdmin()
   const [error, setError] = useState('')
   const [pending, setPending] = useState(false)
   async function signIn(event: FormEvent<HTMLFormElement>) {
@@ -142,8 +400,11 @@ function LoginPage() {
     const password = String(form.get('password') || '')
     try {
       const localStaff = readPrototypeStaff().find((staff) => staff.email === email)
-      if (email === demoAdmin.email && password === 'CarmelDemo2026!') {
-        localStorage.setItem(prototypeSessionKey, JSON.stringify(demoAdmin))
+      const localDemoAdmin = readDemoAdmin()
+      if (email === localDemoAdmin.email) {
+        const passwordMatches = localDemoAdmin.passwordHash ? await hashPrototypePassword(password) === localDemoAdmin.passwordHash : password === 'CarmelDemo2026!'
+        if (!passwordMatches) throw new Error('Email or password is incorrect.')
+        localStorage.setItem(prototypeSessionKey, JSON.stringify(localDemoAdmin))
         navigate('/admin', { replace: true })
         return
       }
@@ -164,7 +425,7 @@ function LoginPage() {
       setPending(false)
     }
   }
-  return <section className="login-page"><div className="login-art" style={{ backgroundImage: `linear-gradient(180deg,rgba(45,32,24,.12),rgba(45,32,24,.82)),url(${photo.chapel})` }}><Brand light /><p>“In the interior castle,<br />we meet the One who waits.”</p></div><form className="login-form" onSubmit={signIn}><Link to="/" className="back-link"><ArrowLeft size={15} /> Back to the website</Link><span className="eyebrow">ADMINISTRATION</span><h1>Welcome <em>back.</em></h1><p>Sign in to manage the Federation website.</p><label>Email address<input name="email" type="email" required placeholder="name@example.com" /></label><label>Password<input name="password" type="password" required placeholder="Enter your password" /></label>{error && <p className="form-error" role="alert">{error}</p>}<button className="button button-dark full-button" disabled={pending}>{pending ? 'Signing in…' : <>Sign in <ArrowRight size={16} /></>}</button><p className="prototype-note">Prototype Admin: <b>admin@carmel.test</b> · <b>CarmelDemo2026!</b></p><Link className="signup-link" to="/signup">Create a Formator staff account <ArrowRight size={14} /></Link></form></section>
+  return <section className="login-page"><div className="login-art" style={{ backgroundImage: `linear-gradient(180deg,rgba(45,32,24,.12),rgba(45,32,24,.82)),url(${photo.chapel})` }}><Brand light /><p>“In the interior castle,<br />we meet the One who waits.”</p></div><form className="login-form" onSubmit={signIn}><Link to="/" className="back-link"><ArrowLeft size={15} /> Back to the website</Link><span className="eyebrow">ADMINISTRATION</span><h1>Welcome <em>back.</em></h1><p>Sign in to manage the Federation website.</p><label>Email address<input name="email" type="email" required placeholder="name@example.com" /></label><label>Password<input name="password" type="password" required placeholder="Enter your password" /></label>{error && <p className="form-error" role="alert">{error}</p>}<button className="button button-dark full-button" disabled={pending}>{pending ? 'Signing in…' : <>Sign in <ArrowRight size={16} /></>}</button><p className="prototype-note">Prototype Admin: <b>{demoProfile.email}</b>{demoProfile.passwordHash ? ' · Password updated in account settings' : <> · <b>CarmelDemo2026!</b></>}</p><Link className="signup-link" to="/signup">Create a Formator staff account <ArrowRight size={14} /></Link></form></section>
 }
 
 function SignupPage() {
@@ -180,7 +441,7 @@ function SignupPage() {
     const email = String(form.get('email') || '').trim().toLowerCase()
     const password = String(form.get('password') || '')
     try {
-      if (readPrototypeStaff().some((staff) => staff.email === email) || email === demoAdmin.email) throw new Error('An account with this email already exists.')
+      if (readPrototypeStaff().some((staff) => staff.email === email) || email === readDemoAdmin().email) throw new Error('An account with this email already exists.')
       const staff: PrototypeStaff = { id: crypto.randomUUID(), name, email, role: 'FORMATOR', passwordHash: await hashPrototypePassword(password) }
       localStorage.setItem(prototypeStaffKey, JSON.stringify([...readPrototypeStaff(), staff]))
       localStorage.setItem(prototypeSessionKey, JSON.stringify(staff))
@@ -194,19 +455,380 @@ function SignupPage() {
   return <section className="login-page"><div className="login-art" style={{ backgroundImage: `linear-gradient(180deg,rgba(45,32,24,.12),rgba(45,32,24,.82)),url(${photo.chapel})` }}><Brand light /><p>“In the interior castle,<br />we meet the One who waits.”</p></div><form className="login-form" onSubmit={signUp}><Link to="/login" className="back-link"><ArrowLeft size={15} /> Back to sign in</Link><span className="eyebrow">FORMATOR STAFF</span><h1>Create an <em>account.</em></h1><p>Join the Federation office team. This prototype stores your account in this browser only.</p><label>Full name<input name="name" required minLength={2} maxLength={100} placeholder="Your name" /></label><label>Email address<input name="email" type="email" required placeholder="name@example.com" /></label><label>Password<input name="password" type="password" required minLength={10} maxLength={128} placeholder="At least 10 characters" /></label>{error && <p className="form-error" role="alert">{error}</p>}<button className="button button-dark full-button" disabled={pending}>{pending ? 'Creating account…' : <>Create Formator account <ArrowRight size={16} /></>}</button><p className="prototype-note">New accounts receive the Formator staff role. An Admin can manage staff access.</p></form></section>
 }
 
+function MemberAuthPage({ mode }: { mode: 'login' | 'signup' }) {
+  const navigate = useNavigate()
+  const isSignup = mode === 'signup'
+  const [error, setError] = useState('')
+  const [pending, setPending] = useState(false)
+  const [privacyOpen, setPrivacyOpen] = useState(false)
+  const [privacyChecked, setPrivacyChecked] = useState(false)
+  const [registrationData, setRegistrationData] = useState<FormData | null>(null)
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const form = new FormData(event.currentTarget)
+    if (isSignup) {
+      setRegistrationData(form)
+      setPrivacyChecked(false)
+      setPrivacyOpen(true)
+      return
+    }
+    void continueSubmit(form)
+  }
+  function confirmPrivacyConsent() {
+    if (!registrationData || !privacyChecked) return
+    setPrivacyOpen(false)
+    void continueSubmit(registrationData)
+  }
+  async function continueSubmit(form: FormData) {
+    setPending(true)
+    setError('')
+    const name = String(form.get('name') || '').trim()
+    const email = String(form.get('email') || '').trim().toLowerCase()
+    const phone = String(form.get('phone') || '').trim()
+    const address = String(form.get('address') || '').trim()
+    const password = String(form.get('password') || '')
+    try {
+      const localAccount = readPrototypeUsers().find((person) => person.email.toLowerCase() === email && person.passwordHash)
+      if (!isSignup && localAccount) {
+        if (localAccount.isBlocked) throw new Error('This account is currently unavailable. Contact the Federation office for help.')
+        if (await hashPrototypePassword(password) !== localAccount.passwordHash) throw new Error('Email or password is incorrect.')
+        saveMemberSession({ id: localAccount.id, name: localAccount.name, email: localAccount.email, phone: localAccount.phone, address: localAccount.address, role: 'USER', prototype: true })
+        navigate('/account', { replace: true })
+        return
+      }
+      if (isSignup && readPrototypeUsers().some((person) => person.email.toLowerCase() === email)) throw new Error('An account with this email already exists.')
+      let useLocalPrototype = false
+      try {
+        const response = await fetch(isSignup ? '/api/auth/register' : '/api/auth/login', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(isSignup ? { name, email, phone, address, password, privacyConsent: true } : { email, password }) })
+        const result = await response.json()
+        if (response.ok && result.user?.role === 'USER') {
+          saveMemberSession({ ...result.user, role: 'USER' })
+          navigate('/account', { replace: true })
+          return
+        }
+        if (!response.ok && response.status >= 500) useLocalPrototype = true
+        else if (!response.ok) throw new Error(result.error || 'Unable to continue.')
+        else throw new Error('Staff accounts use the Federation staff sign-in page.')
+      } catch (reason) {
+        if (reason instanceof TypeError) useLocalPrototype = true
+        else throw reason
+      }
+      if (!useLocalPrototype) throw new Error('Unable to connect to the account service.')
+      if (!isSignup) throw new Error('Email or password is incorrect. Create a member account first if you are new here.')
+      const user: PrototypeUser = { id: crypto.randomUUID(), name, email, phone, address, role: 'USER', isBlocked: false, passwordHash: await hashPrototypePassword(password), createdAt: new Date().toISOString(), privacyConsentAt: new Date().toISOString(), privacyPolicyVersion: memberPrivacyVersion }
+      localStorage.setItem(prototypeUsersKey, JSON.stringify([user, ...readPrototypeUsers()]))
+      saveMemberSession({ id: user.id, name, email, phone, address, role: 'USER', prototype: true })
+      navigate('/account', { replace: true })
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Unable to connect to the account service.')
+    } finally {
+      setPending(false)
+    }
+  }
+  return <>
+  <section className="login-page member-auth-page">
+    <div className="login-art" style={{ backgroundImage: `linear-gradient(180deg,rgba(45,32,24,.12),rgba(45,32,24,.82)),url(${photo.chapel})` }}><Brand light /><p>“Let your soul be a garden<br />where God may walk.”</p></div>
+    <form className="login-form" onSubmit={submit}>
+      <Link to="/" className="back-link"><ArrowLeft size={15} /> Back to the website</Link>
+      <span className="eyebrow">CARMELS IN COMMUNION</span>
+      <h1>{isSignup ? <>Create your <em>profile.</em></> : <>Welcome <em>back.</em></>}</h1>
+      <p>{isSignup ? 'Create a member profile to keep your discernment, messages, and saved teachings together.' : 'Sign in to view your profile, messages, and favorite teachings.'}</p>
+      {isSignup && <>
+        <label>Full name<input name="name" required minLength={2} maxLength={100} autoComplete="name" placeholder="Your name" /></label>
+        <label>Contact number<input name="phone" type="tel" required minLength={7} maxLength={30} autoComplete="tel" placeholder="e.g. +63 912 345 6789" /></label>
+        <label>Address<textarea name="address" required minLength={5} maxLength={300} rows={2} autoComplete="street-address" placeholder="Your complete address" /></label>
+      </>}
+      <label>Email address<input name="email" type="email" required autoComplete="email" placeholder="name@example.com" /></label>
+      <label>Password<input name="password" type="password" required minLength={isSignup ? 10 : 1} maxLength={128} autoComplete={isSignup ? 'new-password' : 'current-password'} placeholder={isSignup ? 'At least 10 characters' : 'Enter your password'} /></label>
+      {error && <p className="form-error" role="alert">{error}</p>}
+      <button className="button button-dark full-button" disabled={pending}>{pending ? 'Please wait…' : isSignup ? <>Create member account <ArrowRight size={16} /></> : <>Sign in <ArrowRight size={16} /></>}</button>
+      <Link className="signup-link" to={isSignup ? '/account/login' : '/account/signup'}>{isSignup ? 'Already have an account? Sign in' : 'New here? Create a member account'} <ArrowRight size={14} /></Link>
+      <Link className="signup-link" to="/login">Federation staff sign in <ArrowUpRight size={14} /></Link>
+    </form>
+  </section>
+  {privacyOpen && <div className="privacy-consent-backdrop" role="presentation"><section className="privacy-consent-dialog" role="dialog" aria-modal="true" aria-labelledby="privacy-consent-title"><button className="privacy-consent-close" type="button" aria-label="Close privacy notice" onClick={() => setPrivacyOpen(false)}><X size={18} /></button><span className="eyebrow">BEFORE YOU JOIN</span><h2 id="privacy-consent-title">Your privacy matters</h2><p>We’ll use the name, contact number, address, and email you provide to manage your member account and communicate with you about your interest in Carmel.</p><p>Your contact details are available to authorized Federation staff for those purposes. Private discernment notes remain visible only to you.</p><label className="privacy-consent-check"><input type="checkbox" checked={privacyChecked} onChange={(event) => setPrivacyChecked(event.target.checked)} /><span>I have read this notice and consent to the collection and use of my information as described.</span></label><footer><button className="button button-outline" type="button" onClick={() => setPrivacyOpen(false)}>Cancel</button><button className="button button-dark" type="button" disabled={!privacyChecked || pending} onClick={confirmPrivacyConsent}>{pending ? 'Creating account…' : 'Agree and create account'} <ArrowRight size={15} /></button></footer></section></div>}
+  </>
+}
+
+function MemberProfileDetails({ member, onUpdated }: { member: MemberAccount; onUpdated: (member: MemberAccount) => void }) {
+  const [name, setName] = useState(member.name)
+  const [email, setEmail] = useState(member.email)
+  const [phone, setPhone] = useState(member.phone || '')
+  const [address, setAddress] = useState(member.address || '')
+  const [error, setError] = useState('')
+  const [saved, setSaved] = useState(false)
+  async function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setError('')
+    setSaved(false)
+    const normalizedEmail = email.trim().toLowerCase()
+    const normalizedPhone = phone.trim()
+    const normalizedAddress = address.trim()
+    try {
+      if (name.trim().length < 2 || !normalizedEmail.includes('@') || normalizedPhone.length < 7 || normalizedPhone.length > 30 || normalizedAddress.length < 5 || normalizedAddress.length > 300) throw new Error('Enter a valid name, email, contact number, and address.')
+      let updated: MemberAccount
+      if (member.prototype) {
+        const users = readPrototypeUsers()
+        if (users.some((user) => user.id !== member.id && user.email.toLowerCase() === normalizedEmail)) throw new Error('An account with this email already exists.')
+        const nextUsers = users.map((user) => user.id === member.id ? { ...user, name: name.trim(), email: normalizedEmail, phone: normalizedPhone, address: normalizedAddress } : user)
+        localStorage.setItem(prototypeUsersKey, JSON.stringify(nextUsers))
+        updated = { ...member, name: name.trim(), email: normalizedEmail, phone: normalizedPhone, address: normalizedAddress }
+      } else {
+        const response = await fetch('/api/auth/me', { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: name.trim(), email: normalizedEmail, phone: normalizedPhone, address: normalizedAddress }) })
+        const result = await response.json()
+        if (!response.ok) throw new Error(result.error || 'Unable to update your profile.')
+        updated = { ...member, name: result.user.name, email: result.user.email, phone: result.user.phone, address: result.user.address }
+      }
+      moveMemberData(member.email, updated.email)
+      saveMemberSession(updated)
+      onUpdated(updated)
+      setSaved(true)
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Unable to update your profile.') }
+  }
+  return <form className="member-account-form" onSubmit={save}><div className="member-section-heading"><span className="eyebrow">YOUR ACCOUNT</span><h2>Profile details</h2><p>Keep your contact details current for messages from the Federation.</p></div><label>Full name<input required minLength={2} maxLength={100} autoComplete="name" value={name} onChange={(event) => setName(event.target.value)} /></label><label>Contact number<input required type="tel" minLength={7} maxLength={30} autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="e.g. +63 912 345 6789" /></label><label>Address<textarea required minLength={5} maxLength={300} rows={3} autoComplete="street-address" value={address} onChange={(event) => setAddress(event.target.value)} placeholder="Your complete address" /></label><label>Email address<input required type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} /></label><div className="member-account-form-actions">{error && <p className="form-error" role="alert">{error}</p>}{saved && <p className="member-success" role="status">Profile details saved.</p>}<button className="button button-dark" type="submit">Save profile</button></div></form>
+}
+
+function MemberDonationsView({ member }: { member: MemberAccount }) {
+  const [donations, setDonations] = useState<MemberDonation[]>(() => { try { return JSON.parse(localStorage.getItem(memberDonationKey(member.email)) || '[]') as MemberDonation[] } catch { return [] } })
+  useEffect(() => {
+    if (member.prototype) return
+    fetch('/api/donations/mine', { credentials: 'include' }).then(async (response) => {
+      if (!response.ok) return
+      const result = await response.json() as { donations?: Array<Omit<MemberDonation, 'amount'> & { amount: number | string }> }
+      const local = (() => { try { return JSON.parse(localStorage.getItem(memberDonationKey(member.email)) || '[]') as MemberDonation[] } catch { return [] } })()
+      const combined = [...local, ...(result.donations || []).map((item) => ({ ...item, amount: Number(item.amount) }))].filter((item, index, all) => all.findIndex((candidate) => candidate.referenceCode === item.referenceCode) === index)
+      setDonations(combined)
+    }).catch(() => undefined)
+  }, [member])
+  return <section className="member-account-section"><div className="member-section-heading"><span className="eyebrow">YOUR GIVING</span><h2>Donation history</h2><p>Offerings linked to this profile appear here.</p></div>{donations.length ? <div className="member-donation-list">{donations.toReversed().map((donation) => <article className="member-donation-row" key={donation.referenceCode}><div><b>{donation.fund}</b><small>{new Date(donation.createdAt).toLocaleDateString()} · {donation.referenceCode}</small></div><strong>{money(donation.amount)}</strong><span className={`member-donation-status ${donation.status.toLowerCase()}`}>{donation.status.replace('_', ' ')}</span></article>)}</div> : <div className="member-empty"><HandHeart size={22} /><h3>No donations linked yet</h3><p>Donations made while signed in on this browser appear here. Older gifts may not be linked to your profile.</p><Link className="button button-outline" to="/donations">Make a donation <ArrowRight size={14} /></Link></div>}</section>
+}
+
+function MemberDiscernmentView({ member }: { member: MemberAccount }) {
+  const [details, setDetails] = useState<MemberDiscernment>(() => ({ monastery: '', stage: 'EXPLORING', note: '' }))
+  const [loading, setLoading] = useState(!member.prototype)
+  const [pending, setPending] = useState(false)
+  const [error, setError] = useState('')
+  const [saved, setSaved] = useState(false)
+  useEffect(() => {
+    let active = true
+    if (member.prototype) {
+      let savedDetails: MemberDiscernment
+      try {
+        const stored = localStorage.getItem(memberDiscernmentKey(member.email))
+        savedDetails = stored ? JSON.parse(stored) as MemberDiscernment : { monastery: '', stage: 'EXPLORING', note: '' }
+      } catch { savedDetails = { monastery: '', stage: 'EXPLORING', note: '' } }
+      savedDetails.stage = normalizeDiscernmentStage(savedDetails.stage)
+      localStorage.setItem(memberDiscernmentKey(member.email), JSON.stringify(savedDetails))
+      setDetails(savedDetails)
+      setLoading(false)
+      window.dispatchEvent(new Event(discernmentUpdatedEvent))
+      return () => { active = false }
+    }
+    fetch('/api/discernment/mine', { credentials: 'include' }).then(async (response) => {
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.error || 'Unable to load your discernment progress.')
+      if (active) setDetails({ ...result.discernment, stage: normalizeDiscernmentStage(result.discernment.stage) })
+    }).catch((reason) => { if (active) setError(reason instanceof Error ? reason.message : 'Unable to load your discernment progress.') }).finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [member.email, member.prototype])
+  async function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setPending(true)
+    setError('')
+    setSaved(false)
+    try {
+      if (member.prototype) localStorage.setItem(memberDiscernmentKey(member.email), JSON.stringify(details))
+      else {
+        const response = await fetch('/api/discernment/mine', { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ monastery: details.monastery, note: details.note }) })
+        const result = await response.json()
+        if (!response.ok) throw new Error(result.error || 'Unable to save your discernment details.')
+        setDetails({ ...result.discernment, stage: normalizeDiscernmentStage(result.discernment.stage) })
+      }
+      setSaved(true)
+      window.dispatchEvent(new Event(discernmentUpdatedEvent))
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Unable to save your discernment details.') }
+    finally { setPending(false) }
+  }
+  const currentStageIndex = discernmentStages.findIndex((stage) => stage.id === details.stage)
+  return <form className="member-account-form discernment-form" onSubmit={save}><div className="member-section-heading"><span className="eyebrow">YOUR JOURNEY</span><h2>Discernment</h2><p>Your progress is updated by the Federation as you move through each stage.</p></div><section className="discernment-progress" aria-label="Your discernment stages"><div className="discernment-progress-heading"><div><span className="eyebrow">CURRENT STAGE</span><h3>{discernmentStages[currentStageIndex]?.label}</h3></div><span>{currentStageIndex + 1} of {discernmentStages.length}</span></div><ol>{discernmentStages.map((stage, index) => <li className={index < currentStageIndex ? 'complete' : index === currentStageIndex ? 'current' : ''} key={stage.id}><span className="discernment-stage-marker">{index < currentStageIndex ? <Check size={13} /> : index + 1}</span><div><b>{stage.label}</b><small>{stage.description}</small></div></li>)}</ol></section><label>Community of interest<input value={details.monastery} onChange={(event) => setDetails({ ...details, monastery: event.target.value })} placeholder="A monastery or city" /></label><label>Private notes<textarea rows={5} value={details.note} onChange={(event) => setDetails({ ...details, note: event.target.value })} placeholder="These notes are visible only to you" /></label>{error && <p className="form-error" role="alert">{error}</p>}<div className="member-account-form-actions">{saved && <p className="member-success" role="status">Your details have been saved.</p>}<button className="button button-dark" type="submit" disabled={loading || pending}>{loading ? 'Loading…' : pending ? 'Saving…' : 'Save details'}</button></div></form>
+}
+
+function MemberSecurityView({ member }: { member: MemberAccount }) {
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [error, setError] = useState('')
+  const [saved, setSaved] = useState(false)
+  async function updatePassword(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setError('')
+    setSaved(false)
+    try {
+      if (newPassword.length < 10) throw new Error('Your new password must have at least 10 characters.')
+      if (member.prototype) {
+        const users = readPrototypeUsers()
+        const account = users.find((user) => user.id === member.id)
+        if (!account?.passwordHash || await hashPrototypePassword(currentPassword) !== account.passwordHash) throw new Error('Your current password is incorrect.')
+        const passwordHash = await hashPrototypePassword(newPassword)
+        localStorage.setItem(prototypeUsersKey, JSON.stringify(users.map((user) => user.id === member.id ? { ...user, passwordHash } : user)))
+      } else {
+        const response = await fetch('/api/auth/me', { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: member.name, email: member.email, currentPassword, newPassword }) })
+        const result = await response.json()
+        if (!response.ok) throw new Error(result.error || 'Unable to update your password.')
+      }
+      setCurrentPassword('')
+      setNewPassword('')
+      setSaved(true)
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Unable to update your password.') }
+  }
+  return <div className="member-security-layout"><form className="member-account-form" onSubmit={updatePassword}><div className="member-section-heading"><span className="eyebrow">ACCOUNT SECURITY</span><h2>Change password</h2><p>Use at least 10 characters for your new password.</p></div><label>Current password<input required type="password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} /></label><label>New password<input required minLength={10} type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} /></label>{error && <p className="form-error" role="alert">{error}</p>}{saved && <p className="member-success" role="status">Password updated.</p>}<button className="button button-dark" type="submit">Update password</button></form><section className="member-privacy-note"><ShieldCheck size={20} /><div><h3>Privacy</h3><p>Your profile, discernment notes, favorites, and prototype messages are saved in this browser. Database-backed account details use the Federation account service.</p></div></section></div>
+}
+
+function MemberMessagesView({ member }: { member: MemberAccount }) {
+  const [threads, setThreads] = useState<DirectThread[]>(readDirectThreads)
+  const [draft, setDraft] = useState('')
+  const threadId = `user:${member.id}`
+  const activeThread = threads.find((thread) => thread.id === threadId)
+  useEffect(() => {
+    const refresh = () => setThreads(readDirectThreads())
+    window.addEventListener('storage', refresh)
+    window.addEventListener(directThreadsUpdatedEvent, refresh)
+    return () => { window.removeEventListener('storage', refresh); window.removeEventListener(directThreadsUpdatedEvent, refresh) }
+  }, [])
+  function send(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const body = draft.trim()
+    if (!body) return
+    const messages = [...(activeThread?.messages || []), { senderId: member.id, senderName: member.name, body, time: new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) }]
+    const thread: DirectThread = { id: threadId, recipientId: 'federation-office', recipientName: 'Federation Office', recipientEmail: '', recipientRole: 'ADMIN', messages }
+    const next = [...threads.filter((item) => item.id !== threadId), thread]
+    localStorage.setItem(prototypeThreadsKey, JSON.stringify(next))
+    setThreads(next)
+    setDraft('')
+    window.dispatchEvent(new Event(directThreadsUpdatedEvent))
+  }
+  return <section className="member-account-section"><div className="member-section-heading"><span className="eyebrow">FEDERATION OFFICE</span><h2>Messages</h2><p>Send a private message to the admin and Formator team.</p></div><div className="member-message-panel"><header><span className="member-message-avatar">FC</span><div><b>Federation office</b><small>Admin and Formator team</small></div></header><div className="member-message-thread">{activeThread?.messages.length ? activeThread.messages.map((message, index) => <article className={`member-message-bubble ${message.senderId === member.id ? 'outgoing' : ''}`} key={`${message.time}-${index}`}><b>{message.senderName}</b><p>{message.body}</p><small>{message.time}</small></article>) : <div className="member-empty"><MessageCircle size={22} /><p>Start a conversation with the Federation office.</p></div>}</div><form className="member-message-compose" onSubmit={send}><input value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Write a message…" aria-label="Write a message" /><button className="button button-dark" type="submit" disabled={!draft.trim()} aria-label="Send message"><ArrowRight size={16} /></button></form></div></section>
+}
+
+function MemberFavoritesView({ member }: { member: MemberAccount }) {
+  const content = useManagedContent()
+  const [favorites, setFavorites] = useState<string[]>(() => readMemberFavorites(member.email))
+  const saved = content.carmelights.filter((teaching) => favorites.includes(teaching.id))
+  function remove(id: string) { const next = favorites.filter((favorite) => favorite !== id); setFavorites(next); localStorage.setItem(memberFavoriteKey(member.email), JSON.stringify(next)) }
+  return <section className="member-account-section"><div className="member-section-heading"><span className="eyebrow">SAVED FOR LATER</span><h2>Favorite teachings</h2><p>Teachings from Carmelite saints you have saved.</p></div>{saved.length ? <div className="member-favorites-list">{saved.map((teaching) => <article className="member-favorite-row" key={teaching.id}><img src={teaching.image || photo.chapel} alt="" /><div><span className="eyebrow">{teaching.author}</span><h3>{teaching.title}</h3><p>{teaching.body}</p><Link className="text-link" to="/carmelights">Open Carmelights <ArrowRight size={14} /></Link></div><button type="button" className="member-favorite-remove" onClick={() => remove(teaching.id)} aria-label={`Remove ${teaching.title} from favorites`}><Heart size={17} fill="currentColor" /></button></article>)}</div> : <div className="member-empty"><Heart size={22} /><h3>No favorite teachings yet</h3><p>Save a teaching from Carmelights to find it here.</p><Link className="button button-outline" to="/carmelights">Explore Carmelights <ArrowRight size={14} /></Link></div>}</section>
+}
+
+function MemberAccountPage() {
+  const location = useLocation()
+  const navigate = useNavigate()
+  const [member, setMember] = useState<MemberAccount | null>(readMemberSession)
+  const [checking, setChecking] = useState(() => !readMemberSession())
+  useEffect(() => {
+    function refreshSession() {
+      const session = readMemberSession()
+      setMember(session)
+      if (!session) setChecking(false)
+    }
+    window.addEventListener(memberSessionUpdatedEvent, refreshSession)
+    window.addEventListener('storage', refreshSession)
+    return () => { window.removeEventListener(memberSessionUpdatedEvent, refreshSession); window.removeEventListener('storage', refreshSession) }
+  }, [])
+  useEffect(() => {
+    const local = readMemberSession()
+    if (local?.prototype) {
+      const record = readPrototypeUsers().find((user) => user.id === local.id)
+      if (!record || record.isBlocked) { saveMemberSession(null); setMember(null) }
+      return
+    }
+    fetch('/api/auth/me', { credentials: 'include' }).then(async (response) => {
+      const result = await response.json()
+      if (response.ok && result.user?.role === 'USER') {
+        const account: MemberAccount = { ...result.user, role: 'USER' }
+        saveMemberSession(account)
+        setMember(account)
+      } else { saveMemberSession(null); setMember(null) }
+    }).catch(() => { setMember(null) }).finally(() => setChecking(false))
+  }, [])
+  if (checking) return <div className="member-account-loading">Loading your profile…</div>
+  if (!member) return <Navigate to="/account/login" replace state={{ from: location.pathname }} />
+  const section = location.pathname.split('/').filter(Boolean)[1] || 'profile'
+  const tabs = [
+    { id: 'donations', label: 'Donation history', icon: HandHeart, path: '/account/donations' },
+    { id: 'discernment', label: 'Discernment', icon: Heart, path: '/account/discernment' },
+    { id: 'security', label: 'Security & privacy', icon: ShieldCheck, path: '/account/security' },
+    { id: 'messages', label: 'Messages', icon: MessageCircle, path: '/account/messages' },
+    { id: 'favorites', label: 'Favorite teachings', icon: Heart, path: '/account/favorites' },
+  ]
+  function signOut() { saveMemberSession(null); navigator.sendBeacon('/api/auth/logout'); navigate('/') }
+  return <section className="member-account-page"><div className="member-account-shell"><aside className="member-account-sidebar"><div className="member-account-identity"><span className="member-account-avatar">{member.name.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()}</span><b>{member.name}</b><small>{member.email}</small><Link className="member-edit-profile" to="/account"><Pencil size={13} /> Edit profile</Link></div><nav aria-label="Your account">{tabs.map(({ id, label, icon: Icon, path }) => <NavLink key={id} to={path} end={id === 'profile'} className={({ isActive }) => isActive || section === id ? 'active' : ''}><Icon size={16} />{label}</NavLink>)}</nav><button className="member-signout" type="button" onClick={signOut}><LogOut size={15} />Sign out</button></aside><main className="member-account-main">{section === 'profile' && <MemberProfileDetails key={member.email} member={member} onUpdated={setMember} />}{section === 'donations' && <MemberDonationsView member={member} />}{section === 'discernment' && <MemberDiscernmentView key={member.email} member={member} />}{section === 'security' && <MemberSecurityView member={member} />}{section === 'messages' && <MemberMessagesView member={member} />}{section === 'favorites' && <MemberFavoritesView member={member} />}</main></div></section>
+}
+
 const transactions = [{ purpose: 'Formation program', monastery: 'Infanta', donor: 'Anonymous', date: 'Sep 24, 2026', amount: 5000, status: 'COMPLETED' }, { purpose: 'Medicines & health care', monastery: 'Baguio', donor: 'Maria Santos', date: 'Sep 23, 2026', amount: 2500, status: 'VERIFIED' }, { purpose: 'Daily food & nutrition', monastery: 'Cebu', donor: 'Anonymous', date: 'Sep 22, 2026', amount: 1000, status: 'RECONCILING' }, { purpose: 'Young sisters’ formation', monastery: 'Davao', donor: 'Ana Reyes', date: 'Sep 21, 2026', amount: 5000, status: 'COMPLETED' }, { purpose: 'Monastery upkeep', monastery: 'Bacolod', donor: 'Anonymous', date: 'Sep 20, 2026', amount: 500, status: 'VERIFIED' }]
 const chartData = [{ month: 'Jan', amount: 42500, donors: 22 }, { month: 'Feb', amount: 51700, donors: 29 }, { month: 'Mar', amount: 48600, donors: 26 }, { month: 'Apr', amount: 68900, donors: 38 }, { month: 'May', amount: 59800, donors: 34 }, { month: 'Jun', amount: 79300, donors: 43 }, { month: 'Jul', amount: 74800, donors: 41 }, { month: 'Aug', amount: 92600, donors: 51 }, { month: 'Sep', amount: 108500, donors: 62 }]
 const conversations = [{ name: 'Maria Santos', email: 'maria.santos@email.com', subject: 'Monthly offering receipt', text: 'Thank you for confirming my contribution…', time: '10:42 AM', type: 'Donation', unread: true, color: 'rose' }, { name: 'Ana Reyes', email: 'ana.reyes@email.com', subject: 'Discernment and visits', text: 'I have been thinking about visiting…', time: 'Yesterday', type: 'Discerner', unread: true, color: 'gold' }, { name: 'John Dela Cruz', email: 'john.dc@email.com', subject: 'Bank transfer question', text: 'Could you help me verify a transfer?', time: 'Sep 25', type: 'Donation', unread: false, color: 'green' }, { name: 'Rosa Villanueva', email: 'rosa.v@email.com', subject: 'A note to the sisters', text: 'Please include our family in your prayers…', time: 'Sep 24', type: 'General', unread: false, color: 'blue' }]
-function AdminShell({ children, user }: { children: ReactNode; user: PrototypeStaff }) {
+const staffConversation = { name: 'Sister Beatrice', email: 'beatrice@carmel.test', subject: 'Formation schedule', text: 'Could we review next month’s formation schedule together?', time: 'Sep 26', type: 'Formator', unread: false, color: 'green' }
+function AdminSidebarNav({ user, onNavigate }: { user: PrototypeStaff; onNavigate: () => void }) {
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({ users: true, donations: true, details: true })
+  function toggle(section: string) { setExpanded({ ...expanded, [section]: !expanded[section] }) }
+  const group = (key: string, label: string, Icon: typeof Users, children: Array<[string, string]>) => <div className="admin-nav-group"><button className="admin-nav-group-button" onClick={() => toggle(key)} aria-expanded={expanded[key]}><Icon size={16} />{label}<ChevronDown className={expanded[key] ? 'rotated' : ''} size={13} /></button>{expanded[key] && <div className="admin-nav-children">{children.map(([childLabel, path]) => <Link key={childLabel} to={path} onClick={onNavigate}>{childLabel}</Link>)}</div>}</div>
+  const canManageUsers = user.role === 'ADMIN' || user.canManageUsers === true
+  const canManageDetails = user.role === 'ADMIN' || user.canManageDetails === true
+  const canManageUpdates = user.role === 'ADMIN' || user.canManageUpdates === true
+  return <nav className="admin-navigation"><NavLink to="/admin" end onClick={onNavigate}><Home size={17} />Dashboard</NavLink><NavLink to="/admin/messages" onClick={onNavigate}><MessageCircle size={17} />Messages<i className="unread-count">2</i></NavLink>{canManageUpdates && <NavLink to="/admin/updates" onClick={onNavigate}><FileText size={17} />Updates</NavLink>}{(canManageUsers || canManageDetails || canManageUpdates || user.role === 'ADMIN') && <div className="admin-nav-label">MANAGEMENT</div>}{canManageUsers && (user.role === 'ADMIN' ? group('users', 'Manage Users', Users, [['Formators', '/admin/users?role=FORMATOR'], ['Users', '/admin/users?role=USER']]) : <NavLink to="/admin/users?role=USER" onClick={onNavigate}><Users size={17} />Manage Users</NavLink>)}{user.role === 'ADMIN' && <NavLink to="/admin/discerners" onClick={onNavigate}><Heart size={17} />Discerners</NavLink>}{user.role === 'ADMIN' && group('donations', 'Donations', HandHeart, [['Logs', '/admin/donations?view=logs'], ['Files', '/admin/donations?view=files']])}{canManageDetails && group('details', 'Manage Details', Image, [['Home', '/admin/content?section=home'], ['Our Monastery', '/admin/content?section=monastery'], ['Carmelife', '/admin/content?section=carmelife'], ['Carmelight', '/admin/content?section=carmelight'], ['About Us', '/admin/content?section=about'], ['Contact Us', '/admin/content?section=contact']])}{user.role === 'ADMIN' && <NavLink to="/admin/audit" onClick={onNavigate}><Clipboard size={17} />Audit Logs</NavLink>}</nav>
+}
+function AdminShell({ children, user, onUserUpdated }: { children: ReactNode; user: PrototypeStaff; onUserUpdated: (user: PrototypeStaff) => void }) {
+  const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [clock, setClock] = useState(new Date())
+  const [profileOpen, setProfileOpen] = useState(false)
+  const [editingProfile, setEditingProfile] = useState(false)
+  const [profileName, setProfileName] = useState(user.name)
+  const [profileEmail, setProfileEmail] = useState(user.email)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [profileError, setProfileError] = useState('')
+  const [profilePending, setProfilePending] = useState(false)
   useEffect(() => { const timer = setInterval(() => setClock(new Date()), 60000); return () => clearInterval(timer) }, [])
-  const allLinks = [['Dashboard', '/admin', Home], ['Messages', '/admin/messages', MessageCircle], ['Updates', '/admin/updates', FileText], ['Manage users', '/admin/users', Users], ['Donations', '/admin/donations', HandHeart], ['Manage details', '/admin/content', Image], ['Audit logs', '/admin/audit', Clipboard]] as const
-  const links = user.role === 'ADMIN' ? allLinks : allLinks.filter(([, path]) => ['/admin', '/admin/messages', '/admin/donations'].includes(path))
-  function signOut() { localStorage.removeItem(prototypeSessionKey); void fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {}) }
-  return <div className="admin-layout"><aside className={`admin-sidebar ${mobileOpen ? 'mobile-open' : ''}`}><Brand light /><div className="admin-role">{user.role === 'ADMIN' ? 'FEDERATION ADMIN' : 'FORMATOR STAFF'}</div><nav>{links.map(([label, path, Icon]) => <NavLink key={path} to={path} end={path === '/admin'} onClick={() => setMobileOpen(false)}><Icon size={17} />{label}{label === 'Messages' && <i className="unread-count">2</i>}</NavLink>)}</nav><div className="sidebar-bottom"><span>{clock.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span><b>{clock.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</b><Link to="/" onClick={signOut}><LogOut size={15} /> Sign out</Link></div></aside><div className="admin-main"><header className="admin-topbar"><button className="icon-button admin-menu" onClick={() => setMobileOpen(!mobileOpen)} aria-label="Open menu"><Menu /></button><div className="admin-search"><Search size={17} /><input placeholder="Search donations, donors, or messages..." /></div><div className="admin-top-actions"><button aria-label="Notifications"><Bell size={19} /><i /></button><button aria-label="Settings"><Settings size={18} /></button><span className="admin-user"><i>{user.name[0]?.toUpperCase()}</i><span>{user.name}<small>{user.role === 'ADMIN' ? 'Administrator' : 'Formator'}</small></span><ChevronDown size={14} /></span></div></header><div className="admin-content">{children}</div></div></div>
+  function signOut() { localStorage.removeItem(prototypeSessionKey); navigator.sendBeacon('/api/auth/logout'); navigate('/login', { replace: true }) }
+  function openProfileEditor() { setProfileName(user.name); setProfileEmail(user.email); setCurrentPassword(''); setNewPassword(''); setProfileError(''); setProfileOpen(false); setEditingProfile(true) }
+  async function saveProfile(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setProfileError('')
+    setProfilePending(true)
+    const name = profileName.trim()
+    const email = profileEmail.trim().toLowerCase()
+    try {
+      if (name.length < 2) throw new Error('Enter a name with at least two characters.')
+      const staff = readPrototypeStaff()
+      const prototypeMember = staff.find((member) => member.id === user.id)
+      const isDemoAdmin = user.id === demoAdmin.id
+      if (prototypeMember || isDemoAdmin) {
+        if (staff.some((member) => member.id !== user.id && member.email.toLowerCase() === email) || (isDemoAdmin && staff.some((member) => member.email.toLowerCase() === email)) || (!isDemoAdmin && email === readDemoAdmin().email.toLowerCase())) throw new Error('An account with this email already exists.')
+        const oldPasswordHash = isDemoAdmin ? readDemoAdmin().passwordHash : prototypeMember?.passwordHash || ''
+        if (newPassword) {
+          const currentPasswordMatches = oldPasswordHash ? await hashPrototypePassword(currentPassword) === oldPasswordHash : isDemoAdmin && currentPassword === 'CarmelDemo2026!'
+          if (!currentPasswordMatches) throw new Error('Your current password is incorrect.')
+        }
+        const updated: PrototypeStaff = { ...user, name, email, passwordHash: newPassword ? await hashPrototypePassword(newPassword) : oldPasswordHash }
+        if (isDemoAdmin) localStorage.setItem(demoAdminProfileKey, JSON.stringify(updated))
+        else localStorage.setItem(prototypeStaffKey, JSON.stringify(staff.map((member) => member.id === user.id ? updated : member)))
+        localStorage.setItem(prototypeSessionKey, JSON.stringify(updated))
+        onUserUpdated(updated)
+      } else {
+        const response = await fetch('/api/auth/me', { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, email, ...(currentPassword ? { currentPassword } : {}), ...(newPassword ? { newPassword } : {}) }) })
+        const result = await response.json()
+        if (!response.ok) throw new Error(result.error || 'Unable to update your account.')
+        onUserUpdated({ ...user, ...result.user, passwordHash: user.passwordHash })
+      }
+      setEditingProfile(false)
+    } catch (reason) {
+      setProfileError(reason instanceof Error ? reason.message : 'Unable to update your account.')
+    } finally {
+      setProfilePending(false)
+    }
+  }
+  return <div className="admin-layout"><aside className={`admin-sidebar ${mobileOpen ? 'mobile-open' : ''}`}><Brand light /><div className="admin-role">{user.role === 'ADMIN' ? 'FEDERATION ADMIN' : 'FORMATOR STAFF'}</div><AdminSidebarNav user={user} onNavigate={() => setMobileOpen(false)} /><div className="sidebar-bottom"><span>{clock.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span><b>{clock.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</b><button type="button" className="sidebar-logout" onClick={signOut}><LogOut size={15} /> Sign out</button></div></aside><div className="admin-main"><header className="admin-topbar"><button className="icon-button admin-menu" onClick={() => setMobileOpen(!mobileOpen)} aria-label="Open menu"><Menu /></button><div className="admin-search"><Search size={17} /><input placeholder={user.role === 'ADMIN' ? 'Search donations, donors, or messages...' : 'Search messages or community users...'} /></div><div className="admin-top-actions"><button aria-label="Notifications"><Bell size={19} /><i /></button><div className="profile-control"><button type="button" className="admin-user" aria-haspopup="menu" aria-expanded={profileOpen} onClick={() => setProfileOpen(!profileOpen)}><i>{user.name[0]?.toUpperCase()}</i><span>{user.name}<small>{user.role === 'ADMIN' ? 'Administrator' : 'Formator'}</small></span><ChevronDown size={14} /></button>{profileOpen && <div className="profile-dropdown" role="menu"><div className="profile-dropdown-identity"><b>{user.name}</b><small>{user.email}</small></div><Link to="/" role="menuitem" onClick={() => setProfileOpen(false)}><ArrowUpRight size={15} />View website</Link><button type="button" role="menuitem" onClick={openProfileEditor}><Pencil size={15} />Edit account</button><button type="button" role="menuitem" onClick={signOut}><LogOut size={15} />Log out</button></div>}</div></div></header><div className="admin-content">{children}</div></div>{editingProfile && <div className="profile-modal-backdrop"><section className="profile-modal" role="dialog" aria-modal="true" aria-labelledby="profile-modal-title"><header><div><span className="eyebrow">ACCOUNT</span><h2 id="profile-modal-title">Edit account</h2></div><button type="button" aria-label="Close edit account" onClick={() => setEditingProfile(false)}><X size={18} /></button></header><form onSubmit={saveProfile}><label>Full name<input value={profileName} onChange={(event) => setProfileName(event.target.value)} required minLength={2} maxLength={100} /></label><label>Email address<input type="email" value={profileEmail} onChange={(event) => setProfileEmail(event.target.value)} required /></label><div className="profile-password-fields"><span>Change password <small>Leave blank to keep your current password.</small></span><label>Current password<input type="password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} autoComplete="current-password" /></label><label>New password<input type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} minLength={10} maxLength={128} autoComplete="new-password" /></label></div>{profileError && <p className="form-error" role="alert">{profileError}</p>}<footer><button className="button button-outline" type="button" onClick={() => setEditingProfile(false)}>Cancel</button><button className="button button-dark" type="submit" disabled={profilePending}>{profilePending ? 'Saving…' : 'Save changes'}</button></footer></form></section></div>}</div>
 }
-function StatCard({ label, value, sub, tone, badge }: { label: string; value: string; sub: string; tone: string; badge?: string }) { return <article className={`stat-card ${tone}`}><div className="stat-top"><span>{label}</span><span className="stat-icon"><Banknote size={18} /></span></div><div className="stat-value">{value}{badge && <small>{badge}</small>}</div><p>{sub}</p><span className="stat-trend">↗ 12.8% <i>this month</i></span></article> }
+function StatCard({ label, value, sub, tone, badge, icon: Icon = Banknote, trend = '↗ 12.8% this month' }: { label: string; value: string; sub: string; tone: string; badge?: string; icon?: typeof Banknote; trend?: string }) { return <article className={`stat-card ${tone}`}><div className="stat-top"><span>{label}</span><span className="stat-icon"><Icon size={18} /></span></div><div className="stat-value">{value}{badge && <small>{badge}</small>}</div><p>{sub}</p><span className="stat-trend">{trend}</span></article> }
 function DashboardPage() {
   const [mode, setMode] = useState('Both')
   const [selected, setSelected] = useState(chartData[8])
@@ -220,21 +842,468 @@ function MessagesPage() {
   const [filter, setFilter] = useState('All')
   const [message, setMessage] = useState('')
   const [sent, setSent] = useState<string[]>([])
-  const person = conversations[active]
-  const filtered = conversations.filter((c) => filter === 'All' || c.type === filter || (filter === 'Unread' && c.unread))
+  const [prototypeChat, setPrototypeChat] = useState<{ name: string; messages: Array<{ sender: 'VISITOR' | 'STAFF'; body: string; time: string }> } | null>(() => { try { return JSON.parse(localStorage.getItem('carmel-contact-conversation') || 'null') } catch { return null } })
+  const [prototypeReply, setPrototypeReply] = useState('')
+  const allConversations = [...conversations, staffConversation]
+  const person = allConversations[active]
+  const filtered = allConversations.filter((c) => filter === 'All' || c.type === filter || (filter === 'Unread' && c.unread))
+  useEffect(() => { function refreshContactThread() { try { setPrototypeChat(JSON.parse(localStorage.getItem('carmel-contact-conversation') || 'null')) } catch { setPrototypeChat(null) } } window.addEventListener('storage', refreshContactThread); window.addEventListener('carmel-conversation-updated', refreshContactThread); return () => { window.removeEventListener('storage', refreshContactThread); window.removeEventListener('carmel-conversation-updated', refreshContactThread) } }, [])
   function send() { if (!message.trim()) return; setSent([...sent, message.trim()]); setMessage('') }
-  return <><div className="admin-title-row"><div><span className="eyebrow">INBOX</span><h1>Messages</h1><p>Conversations from visitors and benefactors.</p></div><div className="quick-filters">{['All', 'Unread', 'Donation', 'Discerner'].map((f) => <button className={filter === f ? 'active' : ''} onClick={() => setFilter(f)} key={f}>{f}{f === 'Unread' && <i>2</i>}</button>)}</div></div><section className="inbox-panel"><div className="conversation-list"><div className="conversation-search"><Search size={16} /><input placeholder="Search conversations" /></div><div className="inbox-tabs"><button className="active">All messages</button><button>Unread <i>2</i></button></div>{filtered.map((c) => { const ix = conversations.indexOf(c); return <button className={`conversation-row ${active === ix ? 'selected' : ''}`} key={c.email} onClick={() => setActive(ix)}><span className={`avatar ${c.color}`}>{c.name.split(' ').map((n) => n[0]).join('')}</span><span className="conversation-text"><b>{c.name}</b><small>{c.subject}</small><p className={c.unread ? 'unread-preview' : ''}>{c.text}</p><i>{c.type}</i></span><span className="conversation-meta">{c.time}{c.unread && <i />}</span></button>})}</div><div className="thread"><div className="thread-head"><span className={`avatar ${person.color}`}>{person.name.split(' ').map((n) => n[0]).join('')}</span><span><b>{person.name}</b><small>{person.email}</small></span><div><button>Mark unread</button><button aria-label="Copy email" onClick={() => navigator.clipboard?.writeText(person.email)}><Clipboard size={15} /></button></div></div><div className="subject-strip"><small>SUBJECT</small><b>{person.subject}</b></div><div className="thread-messages"><div className="thread-divider"><span>CONVERSATION STARTED · SEP 24, 2026</span></div><div className="bubble visitor">Good morning, sisters. I have sent my monthly offering for September. Could you please let me know when it has been received?<small>10:32 AM</small></div><div className="bubble admin">Peace be with you. Thank you for your generous offering. We have received your payment reference and will confirm it shortly.<small>10:38 AM <Check size={12} /></small></div>{sent.map((text, i) => <div className="bubble admin" key={i}>{text}<small>Just now <Check size={12} /></small></div>)}</div><div className="reply-chips">{['Your offering is in our prayers', 'Thank you for your generous gift', 'Peace and joy be with you'].map((t) => <button onClick={() => setMessage(t)} key={t}>{t}</button>)}</div><form className="reply-box" onSubmit={(e) => { e.preventDefault(); send() }}><button type="button" aria-label="Attach"><Image size={18} /></button><input value={message} onChange={(e) => setMessage(e.target.value)} placeholder={`Reply to ${person.name}... (Press Enter to send)`} /><button className="send-button" aria-label="Send"><ArrowRight size={18} /></button><small>Reply dispatches to {person.email}</small></form></div></section></>
+  function sendPrototypeReply(event: FormEvent<HTMLFormElement>) { event.preventDefault(); const body = prototypeReply.trim(); if (!body || !prototypeChat) return; const next = { ...prototypeChat, messages: [...prototypeChat.messages, { sender: 'STAFF' as const, body, time: 'Just now' }] }; setPrototypeChat(next); setPrototypeReply(''); localStorage.setItem('carmel-contact-conversation', JSON.stringify(next)); window.dispatchEvent(new Event('carmel-conversation-updated')) }
+  return <><div className="admin-title-row"><div><span className="eyebrow">INBOX</span><h1>Messages</h1><p>Conversations from visitors and benefactors.</p></div><div className="quick-filters">{['All', 'Unread', 'Donation', 'Discerner'].map((f) => <button className={filter === f ? 'active' : ''} onClick={() => setFilter(f)} key={f}>{f}{f === 'Unread' && <i>2</i>}</button>)}</div></div>{prototypeChat && <section className="admin-panel prototype-chat-panel"><div className="panel-heading"><div><span className="eyebrow">PROTOTYPE LIVE CHAT</span><h2>{prototypeChat.name}</h2><p>Browser-local conversation from the Contact Us page.</p></div><span className="staff-role-label">FORMATOR REPLY</span></div><div className="prototype-chat-messages">{prototypeChat.messages.map((chatMessage, index) => <div className={`prototype-chat-message ${chatMessage.sender.toLowerCase()}`} key={`${chatMessage.time}-${index}`}><b>{chatMessage.sender === 'STAFF' ? 'Federation office' : prototypeChat.name}</b><p>{chatMessage.body}</p><small>{chatMessage.time}</small></div>)}</div><form className="prototype-chat-compose" onSubmit={sendPrototypeReply}><input value={prototypeReply} onChange={(event) => setPrototypeReply(event.target.value)} placeholder="Reply to this visitor..." aria-label="Reply to prototype visitor" /><button className="button button-dark" type="submit">Send reply <ArrowRight size={14} /></button></form></section>}<section className="inbox-panel"><div className="conversation-list"><div className="conversation-search"><Search size={16} /><input placeholder="Search conversations" /></div><div className="inbox-tabs"><button className="active">All messages</button><button>Unread <i>2</i></button></div>{filtered.map((c) => { const ix = conversations.indexOf(c); return <button className={`conversation-row ${active === ix ? 'selected' : ''}`} key={c.email} onClick={() => setActive(ix)}><span className={`avatar ${c.color}`}>{c.name.split(' ').map((n) => n[0]).join('')}</span><span className="conversation-text"><b>{c.name}</b><small>{c.subject}</small><p className={c.unread ? 'unread-preview' : ''}>{c.text}</p><i>{c.type}</i></span><span className="conversation-meta">{c.time}{c.unread && <i />}</span></button>})}</div><div className="thread"><div className="thread-head"><span className={`avatar ${person.color}`}>{person.name.split(' ').map((n) => n[0]).join('')}</span><span><b>{person.name}</b><small>{person.email}</small></span><div><button>Mark unread</button><button aria-label="Copy email" onClick={() => navigator.clipboard?.writeText(person.email)}><Clipboard size={15} /></button></div></div><div className="subject-strip"><small>SUBJECT</small><b>{person.subject}</b></div><div className="thread-messages"><div className="thread-divider"><span>CONVERSATION STARTED · SEP 24, 2026</span></div><div className="bubble visitor">Good morning, sisters. I have sent my monthly offering for September. Could you please let me know when it has been received?<small>10:32 AM</small></div><div className="bubble admin">Peace be with you. Thank you for your generous offering. We have received your payment reference and will confirm it shortly.<small>10:38 AM <Check size={12} /></small></div>{sent.map((text, i) => <div className="bubble admin" key={i}>{text}<small>Just now <Check size={12} /></small></div>)}</div><div className="reply-chips">{['Your offering is in our prayers', 'Thank you for your generous gift', 'Peace and joy be with you'].map((t) => <button onClick={() => setMessage(t)} key={t}>{t}</button>)}</div><form className="reply-box" onSubmit={(e) => { e.preventDefault(); send() }}><button type="button" aria-label="Attach"><Image size={18} /></button><input value={message} onChange={(e) => setMessage(e.target.value)} placeholder={`Reply to ${person.name}... (Press Enter to send)`} /><button className="send-button" aria-label="Send"><ArrowRight size={18} /></button><small>Reply dispatches to {person.email}</small></form></div></section></>
 }
-function GenericAdmin({ title }: { title: string }) { return <><div className="admin-title-row"><div><span className="eyebrow">FEDERATION OFFICE</span><h1>{title}</h1><p>Manage {title.toLowerCase()} for Carmels in Communion.</p></div><button className="button button-dark">+ Add new</button></div><section className="admin-panel generic-panel"><div className="generic-search"><Search size={16} /><input placeholder={`Search ${title.toLowerCase()}...`} /></div><div className="empty-state"><span><FileText /></span><h2>{title} workspace</h2><p>Records and tools for this section will appear here as the connected service is configured.</p><button className="button button-outline">Configure section <ArrowRight size={15} /></button></div></section></> }
+function UpdatesAdminPage() {
+  const [updates, setUpdates] = useState<SiteUpdate[]>(readSiteUpdates)
+  const [title, setTitle] = useState('')
+  const [category, setCategory] = useState('Federation events')
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
+  const [body, setBody] = useState('')
+  const [image, setImage] = useState('')
+  const [error, setError] = useState('')
+  function saveUpdates(next: SiteUpdate[]) { setUpdates(next); localStorage.setItem(prototypeUpdatesKey, JSON.stringify(next)); window.dispatchEvent(new Event('carmel-updates-updated')) }
+  function chooseImage(event: ChangeEvent<HTMLInputElement>) { const file = event.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = () => setImage(String(reader.result || '')); reader.readAsDataURL(file) }
+  function publish(event: FormEvent<HTMLFormElement>) { event.preventDefault(); if (!title.trim() || !body.trim()) { setError('Add a title and message before publishing.'); return } const formattedDate = new Date(`${date}T12:00:00`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }); const next = [{ id: crypto.randomUUID(), title: title.trim(), category, date: formattedDate, image, body: body.trim() }, ...updates]; saveUpdates(next); setTitle(''); setBody(''); setImage(''); setError('') }
+  function removeUpdate(id: string) { saveUpdates(updates.filter((update) => update.id !== id)) }
+  return <><div className="admin-title-row"><div><span className="eyebrow">FEDERATION NEWS</span><h1>Updates</h1><p>Create and publish posts that appear on the public Carmelinks page.</p></div></div><div className="updates-admin-layout"><form className="admin-panel update-composer" onSubmit={publish}><div className="panel-heading"><div><h2>Create an update</h2><p>Share a reflection, event, or community moment.</p></div><span className="staff-role-label">PUBLIC POST</span></div><label>Title<input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Post title" /></label><div className="update-composer-row"><label>Category<select value={category} onChange={(event) => setCategory(event.target.value)}><option>Federation events</option><option>Reflections</option><option>Community life</option></select></label><label>Publish date<input type="date" value={date} onChange={(event) => setDate(event.target.value)} /></label></div><label>Message<textarea value={body} onChange={(event) => setBody(event.target.value)} rows={8} placeholder="Write the update for your communities..." /></label><label className="update-image-picker">Add a picture <small>Optional</small><input type="file" accept="image/*" onChange={chooseImage} />{image && <img src={image} alt="Selected update preview" />}</label>{error && <p className="form-error" role="alert">{error}</p>}<button className="button button-dark" type="submit">Publish update <ArrowUpRight size={15} /></button></form><section className="admin-panel published-updates"><div className="panel-heading"><div><h2>Published posts</h2><p>{updates.length} posts visible on Carmelinks.</p></div></div><div className="published-update-list">{updates.map((update) => <article className="published-update-row" key={update.id}>{update.image ? <img src={update.image} alt="" /> : <span className="published-update-placeholder"><FileText size={18} /></span>}<div><b>{update.title}</b><small>{update.category} · {update.date}</small></div><button onClick={() => removeUpdate(update.id)} aria-label={`Delete ${update.title}`}><X size={16} /></button></article>)}</div></section></div></>
+}
+function LegacyGenericAdmin({ title }: { title: string }) { return <><div className="admin-title-row"><div><span className="eyebrow">FEDERATION OFFICE</span><h1>{title}</h1><p>Manage {title.toLowerCase()} for Carmels in Communion.</p></div><button className="button button-dark">+ Add new</button></div><section className="admin-panel generic-panel"><div className="generic-search"><Search size={16} /><input placeholder={`Search ${title.toLowerCase()}...`} /></div><div className="empty-state"><span><FileText /></span><h2>{title} workspace</h2><p>Records and tools for this section will appear here as the connected service is configured.</p><button className="button button-outline">Configure section <ArrowRight size={15} /></button></div></section></> }
+
+function ContentAdminPage() {
+  const location = useLocation()
+  const section = new URLSearchParams(location.search).get('section') || 'home'
+  const content = useManagedContent()
+  const [image, setImage] = useState(content.homeHeroImage)
+  const [monastery, setMonastery] = useState<ManagedMonastery>({ id: '', name: '', city: '', description: '', projectTitle: '', projectDetails: '', image: '' })
+  const [article, setArticle] = useState<ManagedArticle>({ id: '', title: '', author: '', body: '', image: '' })
+  const [editingMonastery, setEditingMonastery] = useState(false)
+  const [editingArticle, setEditingArticle] = useState(false)
+  const [error, setError] = useState('')
+  const isMonastery = section === 'monastery'
+  const isLife = section === 'carmelife'
+  const isSaints = section === 'carmelight'
+  const articleKey = isLife ? 'carmelife' : 'carmelights'
+  const articles = content[articleKey]
+  const sectionTitle = isMonastery ? 'Our Monastery' : isLife ? 'Carmelife' : isSaints ? 'Carmelights' : section === 'contact' ? 'Contact Us' : section === 'about' ? 'About Us' : 'Home'
+  function chooseImage(event: ChangeEvent<HTMLInputElement>, target: 'home' | 'monastery' | 'article') {
+    const file = event.target.files?.[0]
+    if (!file) return
+    if (file.size > 2_000_000) { setError('Choose an image smaller than 2 MB.'); return }
+    const reader = new FileReader()
+    reader.onload = () => {
+      const value = String(reader.result || '')
+      if (target === 'home') setImage(value)
+      else if (target === 'monastery') setMonastery((current) => ({ ...current, image: value }))
+      else setArticle((current) => ({ ...current, image: value }))
+      setError('')
+    }
+    reader.readAsDataURL(file)
+  }
+  function saveHomeImage(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!image.trim()) { setError('Add an image URL or upload an image first.'); return }
+    if (!saveManagedContent({ ...content, homeHeroImage: image.trim() })) { setError('Browser storage is full. Use an image URL or a smaller image.'); return }
+    setError('')
+  }
+  function saveMonastery(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const record = { ...monastery, id: monastery.id || crypto.randomUUID(), image: monastery.image || photo.chapel }
+    const monasteries = editingMonastery ? content.monasteries.map((item) => item.id === record.id ? record : item) : [record, ...content.monasteries]
+    if (!saveManagedContent({ ...content, monasteries })) { setError('Browser storage is full. Use an image URL or a smaller image.'); return }
+    setMonastery({ id: '', name: '', city: '', description: '', projectTitle: '', projectDetails: '', image: '' })
+    setEditingMonastery(false)
+    setError('')
+  }
+  function saveArticle(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const record = { ...article, id: article.id || crypto.randomUUID(), image: article.image || (isLife ? photo.garden : photo.chapel) }
+    const nextArticles = editingArticle ? articles.map((item) => item.id === record.id ? record : item) : [record, ...articles]
+    if (!saveManagedContent({ ...content, [articleKey]: nextArticles })) { setError('Browser storage is full. Use an image URL or a smaller image.'); return }
+    setArticle({ id: '', title: '', author: '', body: '', image: '' })
+    setEditingArticle(false)
+    setError('')
+  }
+  function removeMonastery(id: string) { if (!saveManagedContent({ ...content, monasteries: content.monasteries.filter((item) => item.id !== id) })) setError('Browser storage is full; the record could not be removed.') }
+  function removeArticle(id: string) { if (!saveManagedContent({ ...content, [articleKey]: articles.filter((item) => item.id !== id) })) setError('Browser storage is full; the entry could not be removed.') }
+  const updateMonastery = (key: keyof ManagedMonastery, value: string) => setMonastery((current) => ({ ...current, [key]: value }))
+  const updateArticle = (key: keyof ManagedArticle, value: string) => setArticle((current) => ({ ...current, [key]: value }))
+  return <><div className="admin-title-row"><div><span className="eyebrow">WEBSITE CONTENT</span><h1>{sectionTitle}</h1><p>Changes appear on the public website in this browser.</p></div></div><nav className="content-admin-tabs" aria-label="Website sections">{[['Home', 'home'], ['Our Monastery', 'monastery'], ['Carmelife', 'carmelife'], ['Carmelights', 'carmelight']].map(([label, key]) => <Link className={section === key ? 'active' : ''} key={key} to={`/admin/content?section=${key}`}>{label}</Link>)}</nav>{isMonastery ? <div className="content-admin-layout"><form className="admin-panel content-editor" onSubmit={saveMonastery}><div className="panel-heading"><div><h2>{editingMonastery ? 'Edit community details' : 'Add a monastery'}</h2><p>Include community information or a building project update.</p></div></div><label>Community name<input required value={monastery.name} onChange={(event) => updateMonastery('name', event.target.value)} placeholder="Carmel of ..." /></label><label>City<input required value={monastery.city} onChange={(event) => updateMonastery('city', event.target.value)} placeholder="City or province" /></label><label>Community details<textarea rows={3} value={monastery.description} onChange={(event) => updateMonastery('description', event.target.value)} placeholder="A short introduction to this community" /></label><label>Church or construction project<input value={monastery.projectTitle} onChange={(event) => updateMonastery('projectTitle', event.target.value)} placeholder="For example: New chapel construction" /></label><label>Project details<textarea rows={3} value={monastery.projectDetails} onChange={(event) => updateMonastery('projectDetails', event.target.value)} placeholder="Share a progress note or details for visitors" /></label><label>Image URL<input value={monastery.image.startsWith('data:') ? '' : monastery.image} onChange={(event) => updateMonastery('image', event.target.value)} placeholder="https://..." /></label><label className="content-image-picker">Upload image<input type="file" accept="image/*" onChange={(event) => chooseImage(event, 'monastery')} />{monastery.image && <img src={monastery.image} alt="Monastery preview" />}</label>{error && <p className="form-error" role="alert">{error}</p>}<div className="content-editor-actions"><button className="button button-dark" type="submit">{editingMonastery ? 'Save changes' : 'Add monastery'}</button>{editingMonastery && <button type="button" className="button button-outline" onClick={() => { setEditingMonastery(false); setMonastery({ id: '', name: '', city: '', description: '', projectTitle: '', projectDetails: '', image: '' }) }}>Cancel</button>}</div></form><section className="admin-panel content-records"><div className="panel-heading"><div><h2>Communities</h2><p>{content.monasteries.length} public records</p></div></div>{content.monasteries.map((item) => <article className="content-record" key={item.id}><img src={item.image || photo.chapel} alt="" /><div><b>{item.name}</b><small>{item.city}{item.projectTitle ? ` · ${item.projectTitle}` : ''}</small></div><button type="button" aria-label={`Edit ${item.name}`} onClick={() => { setMonastery(item); setEditingMonastery(true); setError('') }}><Pencil size={15} /></button><button type="button" aria-label={`Delete ${item.name}`} onClick={() => removeMonastery(item.id)}><X size={16} /></button></article>)}</section></div> : isLife || isSaints ? <div className="content-admin-layout"><form className="admin-panel content-editor" onSubmit={saveArticle}><div className="panel-heading"><div><h2>{editingArticle ? 'Edit entry' : isLife ? 'Add a vocation story' : 'Add a saint teaching'}</h2><p>{isLife ? 'Share a vocation story or a glimpse of Carmelite life.' : 'Share a teaching and identify the Carmelite saint.'}</p></div></div><label>Title<input required value={article.title} onChange={(event) => updateArticle('title', event.target.value)} placeholder={isLife ? 'Story title' : 'Teaching title'} /></label><label>{isLife ? 'Sister / author' : 'Saint'}<input required value={article.author} onChange={(event) => updateArticle('author', event.target.value)} placeholder={isLife ? 'Name or community' : 'Saint name'} /></label><label>Story<textarea required rows={7} value={article.body} onChange={(event) => updateArticle('body', event.target.value)} placeholder="Write the entry shown on the public page" /></label><label>Image URL<input value={article.image.startsWith('data:') ? '' : article.image} onChange={(event) => updateArticle('image', event.target.value)} placeholder="https://..." /></label><label className="content-image-picker">Upload image<input type="file" accept="image/*" onChange={(event) => chooseImage(event, 'article')} />{article.image && <img src={article.image} alt="Entry preview" />}</label>{error && <p className="form-error" role="alert">{error}</p>}<div className="content-editor-actions"><button className="button button-dark" type="submit">{editingArticle ? 'Save changes' : 'Publish entry'}</button>{editingArticle && <button type="button" className="button button-outline" onClick={() => { setEditingArticle(false); setArticle({ id: '', title: '', author: '', body: '', image: '' }) }}>Cancel</button>}</div></form><section className="admin-panel content-records"><div className="panel-heading"><div><h2>Published entries</h2><p>{articles.length} visible on {isLife ? 'Carmelife' : 'Carmelights'}</p></div></div>{articles.map((item) => <article className="content-record" key={item.id}><img src={item.image || photo.chapel} alt="" /><div><b>{item.title}</b><small>{item.author}</small></div><button type="button" aria-label={`Edit ${item.title}`} onClick={() => { setArticle(item); setEditingArticle(true); setError('') }}><Pencil size={15} /></button><button type="button" aria-label={`Delete ${item.title}`} onClick={() => removeArticle(item.id)}><X size={16} /></button></article>)}</section></div> : <form className="admin-panel content-editor content-image-editor" onSubmit={saveHomeImage}><div className="panel-heading"><div><h2>Replace the site background image</h2><p>This image is used in the home hero and shared site imagery.</p></div></div><label>Image URL<input value={image.startsWith('data:') ? '' : image} onChange={(event) => setImage(event.target.value)} placeholder="https://..." /></label><label className="content-image-picker">Or upload an image<input type="file" accept="image/*" onChange={(event) => chooseImage(event, 'home')} />{image && <img src={image} alt="Current background preview" />}</label>{error && <p className="form-error" role="alert">{error}</p>}<button className="button button-dark" type="submit">Save background image</button></form>}</>
+}
+function GenericAdmin({ title }: { title: string }) { return title === 'Manage details' ? <ContentAdminPage /> : <LegacyGenericAdmin title={title} /> }
+
+function LegacyManageUsersPage() {
+  const location = useLocation()
+  const view = new URLSearchParams(location.search).get('role') === 'USER' ? 'USER' : 'FORMATOR'
+  const [staff, setStaff] = useState(readPrototypeStaff)
+  const [users, setUsers] = useState(readPrototypeUsers)
+  const [showCreate, setShowCreate] = useState(false)
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [canManageUsers, setCanManageUsers] = useState(false)
+  const [canManageDetails, setCanManageDetails] = useState(false)
+  const [error, setError] = useState('')
+  function saveStaff(next: PrototypeStaff[]) { setStaff(next); localStorage.setItem(prototypeStaffKey, JSON.stringify(next)) }
+  function saveUsers(next: PrototypeUser[]) { setUsers(next); localStorage.setItem(prototypeUsersKey, JSON.stringify(next)) }
+  async function createFormator(event: FormEvent<HTMLFormElement>) { event.preventDefault(); if (!name.trim() || !email.trim() || password.length < 10) { setError('Enter a name, email, and password of at least 10 characters.'); return } if (staff.some((member) => member.email === email.trim().toLowerCase())) { setError('A Formator with this email already exists.'); return } saveStaff([{ id: crypto.randomUUID(), name: name.trim(), email: email.trim().toLowerCase(), role: 'FORMATOR', passwordHash: await hashPrototypePassword(password), isActive: true, canManageUsers, canManageDetails }, ...staff]); setName(''); setEmail(''); setPassword(''); setCanManageUsers(false); setCanManageDetails(false); setError(''); setShowCreate(false) }
+  return <><div className="admin-title-row"><div><span className="eyebrow">ACCESS CONTROL</span><h1>Manage users</h1><p>Control Formator staff access and visitor accounts in this prototype.</p></div>{view === 'FORMATOR' && <button className="button button-dark" onClick={() => setShowCreate(!showCreate)}>{showCreate ? 'Cancel' : 'Add Formator'} <Users size={15} /></button>}</div><div className="user-management-tabs"><Link className={view === 'FORMATOR' ? 'active' : ''} to="/admin/users?role=FORMATOR">Formator <span>{staff.length}</span></Link><Link className={view === 'USER' ? 'active' : ''} to="/admin/users?role=USER">User <span>{users.length}</span></Link></div>{view === 'FORMATOR' ? <><section className="admin-panel staff-panel">{showCreate && <form className="create-formator" onSubmit={createFormator}><div><h2>Create Formator</h2><p>This creates a staff account for the Federation office.</p></div><label>Name<input value={name} onChange={(event) => setName(event.target.value)} placeholder="Full name" /></label><label>Email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@example.com" /></label><label>Password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} minLength={10} placeholder="At least 10 characters" /></label>{error && <p className="form-error" role="alert">{error}</p>}<button className="button button-dark" type="submit">Create account <ArrowRight size={15} /></button></form>}<div className="panel-heading"><div><h2>Formator staff</h2><p>{staff.length} local {staff.length === 1 ? 'account' : 'accounts'}</p></div><span className="staff-role-label">FORMATOR</span></div>{staff.length ? <div className="staff-table-wrap"><table><thead><tr><th>NAME</th><th>EMAIL</th><th>ACCESS</th><th>ACTION</th></tr></thead><tbody>{staff.map((member) => <tr key={member.id}><td><b>{member.name}</b></td><td>{member.email}</td><td><span className={`access-status ${member.isActive !== false ? 'enabled' : 'disabled'}`}>{member.isActive !== false ? 'Active' : 'Disabled'}</span></td><td><button className="staff-action" onClick={() => saveStaff(staff.map((item) => item.id === member.id ? { ...item, isActive: item.isActive === false } : item))}>{member.isActive !== false ? 'Disable' : 'Enable'}</button><button className="staff-remove" onClick={() => saveStaff(staff.filter((item) => item.id !== member.id))}>Delete</button></td></tr>)}</tbody></table></div> : <div className="staff-empty"><Users size={24} /><p>No Formator accounts yet.</p></div>}</section></> : <section className="admin-panel staff-panel"><div className="panel-heading"><div><h2>User accounts</h2><p>{users.length} visitor {users.length === 1 ? 'account' : 'accounts'}</p></div><span className="staff-role-label">USER</span></div><div className="staff-table-wrap"><table><thead><tr><th>NAME</th><th>EMAIL</th><th>STATUS</th><th>ACTION</th></tr></thead><tbody>{users.map((member) => <tr key={member.id}><td><b>{member.name}</b></td><td>{member.email}</td><td><span className={`access-status ${member.isBlocked ? 'disabled' : 'enabled'}`}>{member.isBlocked ? 'Blocked' : 'Active'}</span></td><td><button className="staff-action" onClick={() => saveUsers(users.map((item) => item.id === member.id ? { ...item, isBlocked: !item.isBlocked } : item))}>{member.isBlocked ? 'Unblock' : 'Block'}</button><button className="staff-remove" onClick={() => saveUsers(users.filter((item) => item.id !== member.id))}>Delete</button></td></tr>)}</tbody></table></div></section>}</>
+}
+
+function LegacyManageUsersAdminPage() {
+  void LegacyManageUsersPage
+  const location = useLocation()
+  const view = new URLSearchParams(location.search).get('role') === 'USER' ? 'USER' : 'FORMATOR'
+  const [staff, setStaff] = useState(readPrototypeStaff)
+  const [users, setUsers] = useState(readPrototypeUsers)
+  const [showCreate, setShowCreate] = useState(false)
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [canManageUsers, setCanManageUsers] = useState(false)
+  const [canManageDetails, setCanManageDetails] = useState(false)
+  const [canManageUpdates, setCanManageUpdates] = useState(false)
+  const [error, setError] = useState('')
+  useEffect(() => {
+    function refreshStaff() { setStaff(readPrototypeStaff()) }
+    window.addEventListener(staffUpdatedEvent, refreshStaff)
+    return () => window.removeEventListener(staffUpdatedEvent, refreshStaff)
+  }, [])
+  function saveStaff(next: PrototypeStaff[]) {
+    const permissionChange = next.flatMap((member) => {
+      const current = staff.find((item) => item.id === member.id)
+      if (!current) return []
+      if (current.canManageUsers !== member.canManageUsers) return [{ member, label: 'Manage Users', granted: member.canManageUsers === true }]
+      if (current.canManageDetails !== member.canManageDetails) return [{ member, label: 'Manage Details', granted: member.canManageDetails === true }]
+      if (current.canManageUpdates !== member.canManageUpdates) return [{ member, label: 'Manage Updates', granted: member.canManageUpdates === true }]
+      return []
+    })[0]
+    if (permissionChange) {
+      window.dispatchEvent(new CustomEvent<PendingPermission>(permissionRequestEvent, { detail: { staff: next, memberName: permissionChange.member.name, labels: [permissionChange.label], action: permissionChange.granted ? 'GRANT' : 'REVOKE' } }))
+      return
+    }
+    setStaff(next)
+    localStorage.setItem(prototypeStaffKey, JSON.stringify(next))
+  }
+  const saveUsers = (next: PrototypeUser[]) => { setUsers(next); localStorage.setItem(prototypeUsersKey, JSON.stringify(next)) }
+  async function createFormator(event: FormEvent<HTMLFormElement>) { event.preventDefault(); if (!name.trim() || !email.trim() || password.length < 10) return setError('Enter a name, email, and password of at least 10 characters.'); const normalizedEmail = email.trim().toLowerCase(); if (staff.some((member) => member.email === normalizedEmail)) return setError('A Formator with this email already exists.'); saveStaff([{ id: crypto.randomUUID(), name: name.trim(), email: normalizedEmail, role: 'FORMATOR', passwordHash: await hashPrototypePassword(password), isActive: true, canManageUsers, canManageDetails, canManageUpdates }, ...staff]); setName(''); setEmail(''); setPassword(''); setCanManageUsers(false); setCanManageDetails(false); setCanManageUpdates(false); setError(''); setShowCreate(false) }
+  return <><div className="admin-title-row"><div><span className="eyebrow">ACCESS CONTROL</span><h1>Manage users</h1><p>Grant Formator permissions and manage visitor accounts.</p></div>{view === 'FORMATOR' && <button className="button button-dark" onClick={() => setShowCreate(!showCreate)}>{showCreate ? 'Cancel' : 'Add Formator'} <Users size={15} /></button>}</div><div className="user-management-tabs"><Link className={view === 'FORMATOR' ? 'active' : ''} to="/admin/users?role=FORMATOR">Formator <span>{staff.length}</span></Link><Link className={view === 'USER' ? 'active' : ''} to="/admin/users?role=USER">User <span>{users.length}</span></Link></div>{view === 'FORMATOR' ? <section className="admin-panel staff-panel">{showCreate && <form className="create-formator" onSubmit={createFormator}><div><h2>Create Formator</h2><p>Set the staff member’s account and permissions.</p></div><label>Name<input value={name} onChange={(event) => setName(event.target.value)} placeholder="Full name" /></label><label>Email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@example.com" /></label><label>Password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} minLength={10} placeholder="At least 10 characters" /></label><label className="permission-check"><input type="checkbox" checked={canManageUsers} onChange={(event) => setCanManageUsers(event.target.checked)} />Manage Users</label><label className="permission-check"><input type="checkbox" checked={canManageDetails} onChange={(event) => setCanManageDetails(event.target.checked)} />Manage Details</label><label className="permission-check"><input type="checkbox" checked={canManageUpdates} onChange={(event) => setCanManageUpdates(event.target.checked)} />Manage Updates</label>{error && <p className="form-error" role="alert">{error}</p>}<button className="button button-dark" type="submit">Create account <ArrowRight size={15} /></button></form>}<div className="panel-heading"><div><h2>Formator staff</h2><p>{staff.length} local {staff.length === 1 ? 'account' : 'accounts'}</p></div><span className="staff-role-label">FORMATOR</span></div><div className="staff-table-wrap"><table><thead><tr><th>NAME</th><th>EMAIL</th><th>ACCESS</th><th>PERMISSIONS</th><th>ACTION</th></tr></thead><tbody>{staff.map((member) => <tr key={member.id}><td><b>{member.name}</b></td><td>{member.email}</td><td><span className={`access-status ${member.isActive !== false ? 'enabled' : 'disabled'}`}>{member.isActive !== false ? 'Active' : 'Disabled'}</span></td><td><button className={`permission-pill ${member.canManageUsers ? 'granted' : ''}`} onClick={() => saveStaff(staff.map((item) => item.id === member.id ? { ...item, canManageUsers: !item.canManageUsers } : item))}>Users</button><button className={`permission-pill ${member.canManageDetails ? 'granted' : ''}`} onClick={() => saveStaff(staff.map((item) => item.id === member.id ? { ...item, canManageDetails: !item.canManageDetails } : item))}>Details</button><button className={`permission-pill ${member.canManageUpdates ? 'granted' : ''}`} aria-pressed={!!member.canManageUpdates} onClick={() => saveStaff(staff.map((item) => item.id === member.id ? { ...item, canManageUpdates: !item.canManageUpdates } : item))}>Updates</button></td><td><button className="staff-action" onClick={() => saveStaff(staff.map((item) => item.id === member.id ? { ...item, isActive: item.isActive === false } : item))}>{member.isActive !== false ? 'Disable' : 'Enable'}</button><button className="staff-remove" onClick={() => saveStaff(staff.filter((item) => item.id !== member.id))}>Delete</button></td></tr>)}</tbody></table></div></section> : <section className="admin-panel staff-panel"><div className="panel-heading"><div><h2>User accounts</h2><p>{users.length} visitor accounts</p></div><span className="staff-role-label">USER</span></div><div className="staff-table-wrap"><table><thead><tr><th>NAME</th><th>EMAIL</th><th>STATUS</th><th>ACTION</th></tr></thead><tbody>{users.map((member) => <tr key={member.id}><td><b>{member.name}</b></td><td>{member.email}</td><td><span className={`access-status ${member.isBlocked ? 'disabled' : 'enabled'}`}>{member.isBlocked ? 'Blocked' : 'Active'}</span></td><td><button className="staff-action" onClick={() => saveUsers(users.map((item) => item.id === member.id ? { ...item, isBlocked: !item.isBlocked } : item))}>{member.isBlocked ? 'Unblock' : 'Block'}</button><button className="staff-remove" onClick={() => saveUsers(users.filter((item) => item.id !== member.id))}>Delete</button></td></tr>)}</tbody></table></div></section>}</>
+}
+
+type DirectMessage = { senderId: string; senderName: string; body: string; time: string }
+type DirectThread = { id: string; recipientId: string; recipientName: string; recipientEmail: string; recipientRole: StaffRole | 'USER'; messages: DirectMessage[] }
+const prototypeThreadsKey = 'carmel-prototype-threads'
+function readDirectThreads(): DirectThread[] { try { return JSON.parse(localStorage.getItem(prototypeThreadsKey) || '[]') as DirectThread[] } catch { return [] } }
+
+function FormatorDashboard({ user }: { user: PrototypeStaff }) {
+  const [userCount, setUserCount] = useState(() => readPrototypeUsers().length)
+  const [updateCount, setUpdateCount] = useState(() => readSiteUpdates().length)
+  const canManageUsers = user.canManageUsers === true
+  const canManageDetails = user.canManageDetails === true
+  const canManageUpdates = user.canManageUpdates === true
+  useEffect(() => {
+    function refresh() { setUserCount(readPrototypeUsers().length); setUpdateCount(readSiteUpdates().length) }
+    window.addEventListener('storage', refresh)
+    window.addEventListener('carmel-updates-updated', refresh)
+    return () => { window.removeEventListener('storage', refresh); window.removeEventListener('carmel-updates-updated', refresh) }
+  }, [])
+  const accessCount = Number(canManageUsers) + Number(canManageDetails) + Number(canManageUpdates)
+  const accessTrend = accessCount === 3 ? 'All permissions granted' : accessCount > 0 ? 'Some permissions granted' : 'No extra permissions'
+  return <><div className="admin-title-row"><div><span className="eyebrow">FORMATOR WORKSPACE</span><h1>Dashboard</h1><p>Stay connected with the Federation and its communities.</p></div><Link className="button button-dark" to="/admin/messages"><MessageCircle size={15} /> Open messages</Link></div><div className="stat-grid"><StatCard label="COMMUNITY USERS" value={String(userCount)} sub="Visitor accounts in the prototype" tone="green" icon={Users} trend="Active accounts" /><StatCard label="FEDERATION UPDATES" value={String(updateCount)} sub="Published public updates" tone="gold" icon={FileText} trend="Available posts" /><StatCard label="YOUR ACCESS" value={`${accessCount} / 3`} sub="Optional management permissions" tone="brown" icon={ShieldCheck} trend={accessTrend} /></div><div className="dashboard-middle"><section className="admin-panel chart-panel"><div className="panel-heading"><div><span className="eyebrow">YOUR WORKSPACE</span><h2>Available tools</h2><p>Your access is set by a Federation administrator.</p></div></div><div className="formator-tool-list"><Link to="/admin/messages"><MessageCircle size={18} /><span><b>Messages</b><small>Talk with community users and Formator staff.</small></span><ArrowRight size={15} /></Link>{canManageUsers && <Link to="/admin/users?role=USER"><Users size={18} /><span><b>Manage users</b><small>Review and update visitor account access.</small></span><ArrowRight size={15} /></Link>}{canManageDetails && <Link to="/admin/content?section=home"><Image size={18} /><span><b>Manage details</b><small>Access the Federation website content workspace.</small></span><ArrowRight size={15} /></Link>}{canManageUpdates && <Link to="/admin/updates"><FileText size={18} /><span><b>Manage updates</b><small>Create and publish Federation updates.</small></span><ArrowRight size={15} /></Link>}</div></section><section className="admin-panel formator-access-panel"><div className="panel-heading"><div><span className="eyebrow">ACCESS CONTROL</span><h2>Permission summary</h2><p>Only an administrator can change these permissions.</p></div><ShieldCheck size={20} /></div><div className="formator-access-row"><span>Manage Users</span><b className={canManageUsers ? 'enabled' : 'disabled'}>{canManageUsers ? 'Granted' : 'Not granted'}</b></div><div className="formator-access-row"><span>Manage Details</span><b className={canManageDetails ? 'enabled' : 'disabled'}>{canManageDetails ? 'Granted' : 'Not granted'}</b></div><div className="formator-access-row"><span>Manage Updates</span><b className={canManageUpdates ? 'enabled' : 'disabled'}>{canManageUpdates ? 'Granted' : 'Not granted'}</b></div></section></div></>
+}
+
+type FormatorManagerViewProps = {
+  staff: PrototypeStaff[]
+  permissions: Array<{ key: FormatorPermissionKey; label: string; description: string; icon: typeof Users }>
+  showCreate: boolean
+  name: string
+  email: string
+  password: string
+  setName: (value: string) => void
+  setEmail: (value: string) => void
+  setPassword: (value: string) => void
+  canManageUsers: boolean
+  canManageDetails: boolean
+  canManageUpdates: boolean
+  setCreationPermission: (key: FormatorPermissionKey, value: boolean) => void
+  error: string
+  createFormator: (event: FormEvent<HTMLFormElement>) => void
+  requestPermissionAction: (member: PrototypeStaff, keys: FormatorPermissionKey[], action: PermissionAction) => void
+  toggleStaffActive: (member: PrototypeStaff) => void
+  deleteStaff: (member: PrototypeStaff) => void
+}
+
+function FormatorManagerView({ staff, permissions, showCreate, name, email, password, setName, setEmail, setPassword, canManageUsers, canManageDetails, canManageUpdates, setCreationPermission, error, createFormator, requestPermissionAction, toggleStaffActive, deleteStaff }: FormatorManagerViewProps) {
+  const [selectedId, setSelectedId] = useState('')
+  const [selectedPermissions, setSelectedPermissions] = useState<FormatorPermissionKey[]>([])
+  const [permissionAction, setPermissionAction] = useState<PermissionAction>('GRANT')
+  const selected = staff.find((member) => member.id === selectedId) || null
+  const countAccess = (member: PrototypeStaff) => permissions.filter(({ key }) => member[key] === true).length
+  useEffect(() => { const clearSelection = () => setSelectedPermissions([]); window.addEventListener(staffUpdatedEvent, clearSelection); return () => window.removeEventListener(staffUpdatedEvent, clearSelection) }, [])
+  function selectAccount(memberId: string) { setSelectedId(memberId); setSelectedPermissions([]); setPermissionAction('GRANT') }
+  function setPermissionSelected(key: FormatorPermissionKey, checked: boolean) { setSelectedPermissions((current) => checked ? [...current.filter((item) => item !== key), key] : current.filter((item) => item !== key)) }
+  const applicablePermissions = selectedPermissions.filter((key) => selected?.[key] !== (permissionAction === 'GRANT'))
+  function choosePermissionAction(action: PermissionAction) { setPermissionAction(action); setSelectedPermissions([]) }
+  function reviewPermissionAction() { if (selected && applicablePermissions.length) requestPermissionAction(selected, applicablePermissions, permissionAction) }
+  return <>
+    {showCreate && <form className="create-formator" onSubmit={createFormator}><header><span className="eyebrow">NEW STAFF ACCOUNT</span><h2>Create Formator</h2><p>Choose which areas this Formator can access.</p></header><div className="create-form-fields"><label>Full name<input value={name} onChange={(event) => setName(event.target.value)} placeholder="Full name" required minLength={2} /></label><label>Email address<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@example.com" required /></label><label>Password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} minLength={10} placeholder="At least 10 characters" required /></label></div><fieldset className="create-permission-group"><legend>Access grants</legend><div>{permissions.map(({ key, label, description }) => <label className="create-permission-option" key={key}><input type="checkbox" checked={key === 'canManageUsers' ? canManageUsers : key === 'canManageDetails' ? canManageDetails : canManageUpdates} onChange={(event) => setCreationPermission(key, event.target.checked)} /><span><b>{label}</b><small>{description}</small></span></label>)}</div></fieldset>{error && <p className="form-error" role="alert">{error}</p>}<footer><button className="button button-dark" type="submit">Create account <ArrowRight size={15} /></button></footer></form>}
+    <section className="managed-section"><header className="managed-section-heading"><div><span className="eyebrow">STAFF ACCESS</span><h2>Formator accounts</h2><p>{staff.length} {staff.length === 1 ? 'account' : 'accounts'} · select an account to view access and actions</p></div></header>
+      {staff.length ? <div className="formator-account-grid">{staff.map((member) => { const granted = permissions.filter(({ key }) => member[key] === true); const accessCount = granted.length; return <button type="button" key={member.id} className={`formator-account-tile ${selected?.id === member.id ? 'selected' : ''}`} aria-pressed={selected?.id === member.id} onClick={() => selectAccount(member.id)}><span className="managed-avatar">{member.name.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()}</span><span className="formator-tile-status"><i className={member.isActive !== false ? 'active' : ''} />{member.isActive !== false ? 'Active' : 'Disabled'}</span><span className="formator-tile-name">{member.name}</span><span className="formator-tile-email">{member.email}</span><span className="formator-tile-access"><b>{accessCount} of {permissions.length}</b> access areas</span><span className="formator-tile-summary">{granted.length ? granted.map((item) => item.label.replace('Manage ', '')).join(' · ') : 'Basic Formator access'}</span></button>})}</div> : <div className="staff-empty"><Users size={24} /><p>No Formator accounts yet.</p></div>}
+    </section>
+    {selected && <div className="formator-detail-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedId('') }} onKeyDown={(event) => { if (event.key === 'Escape') setSelectedId('') }}><section className="formator-detail-dialog" role="dialog" aria-modal="true" aria-labelledby="formator-detail-title"><header className="formator-detail-heading"><div><span className="eyebrow">ACCOUNT DETAILS</span><h2 id="formator-detail-title">{selected.name}</h2><p>{selected.email}</p></div><div className="formator-detail-header-actions"><span className={`access-status ${selected.isActive !== false ? 'enabled' : 'disabled'}`}>{selected.isActive !== false ? 'Active' : 'Disabled'}</span><button type="button" className="formator-detail-close" aria-label="Close account details" onClick={() => setSelectedId('')}><X size={17} /></button></div></header><div className="formator-detail-permissions"><div className="permission-batch-mode"><div><span className="eyebrow">ACTION</span><p>{permissionAction === 'GRANT' ? 'Select areas to grant' : 'Select granted areas to revoke'}</p></div><div className="permission-action-toggle" role="group" aria-label="Choose whether to grant or revoke access"><button type="button" aria-pressed={permissionAction === 'GRANT'} className={permissionAction === 'GRANT' ? 'active grant' : ''} onClick={() => choosePermissionAction('GRANT')}>Grant</button><button type="button" aria-pressed={permissionAction === 'REVOKE'} className={permissionAction === 'REVOKE' ? 'active revoke' : ''} onClick={() => choosePermissionAction('REVOKE')}>Revoke</button></div></div><div className="managed-permissions-heading"><h4>Permission areas</h4><p>{countAccess(selected)} of {permissions.length} currently granted · {selectedPermissions.length} selected</p></div><div className="managed-permission-grid">{permissions.map(({ key, label, description, icon: Icon }) => { const granted = selected[key] === true; const applicable = permissionAction === 'GRANT' ? !granted : granted; return <label key={key} className={`managed-permission ${granted ? 'granted' : ''} ${selectedPermissions.includes(key) ? 'selected' : ''} ${!applicable ? 'not-applicable' : ''}`}><input className="managed-permission-checkbox" type="checkbox" checked={selectedPermissions.includes(key)} disabled={!applicable} onChange={(event) => setPermissionSelected(key, event.target.checked)} /><span className="managed-permission-icon"><Icon size={16} /></span><span className="managed-permission-copy"><b>{label}</b><small>{description}</small></span><span className={`managed-permission-state ${granted ? 'granted' : ''}`}>{granted ? 'Granted' : 'Not granted'}</span></label>})}</div></div><footer className="managed-record-actions"><span>{selectedPermissions.length ? `${selectedPermissions.length} selected for ${permissionAction === 'GRANT' ? 'grant' : 'revoke'}` : 'Choose an action, then select permission areas'}</span><div className="managed-record-action-buttons"><button className={`permission-batch-submit ${permissionAction === 'GRANT' ? 'grant' : 'revoke'}`} disabled={!applicablePermissions.length} onClick={reviewPermissionAction}>Review {permissionAction === 'GRANT' ? 'grant' : 'revoke'}{applicablePermissions.length ? ` (${applicablePermissions.length})` : ''}</button><button className="staff-action" onClick={() => toggleStaffActive(selected)}>{selected.isActive !== false ? 'Disable account' : 'Enable account'}</button><button className="staff-remove" onClick={() => { setSelectedId(''); deleteStaff(selected) }}>Delete account</button></div></footer></section></div>}
+  </>
+}
 
 function ManageUsersPage() {
+  void LegacyManageUsersAdminPage
+  const location = useLocation()
+  const view = new URLSearchParams(location.search).get('role') === 'USER' ? 'USER' : 'FORMATOR'
   const [staff, setStaff] = useState(readPrototypeStaff)
-  function removeStaff(id: string) {
-    const nextStaff = staff.filter((member) => member.id !== id)
-    localStorage.setItem(prototypeStaffKey, JSON.stringify(nextStaff))
-    setStaff(nextStaff)
+  const [users, setUsers] = useState(readPrototypeUsers)
+  const [showCreate, setShowCreate] = useState(false)
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [canManageUsers, setCanManageUsers] = useState(false)
+  const [canManageDetails, setCanManageDetails] = useState(false)
+  const [canManageUpdates, setCanManageUpdates] = useState(false)
+  const [error, setError] = useState('')
+  const permissions = [
+    { key: 'canManageUsers' as const, label: 'Manage Users', description: 'Manage community accounts', icon: Users },
+    { key: 'canManageDetails' as const, label: 'Manage Details', description: 'Edit website content', icon: Image },
+    { key: 'canManageUpdates' as const, label: 'Manage Updates', description: 'Publish Federation updates', icon: FileText },
+  ]
+  useEffect(() => {
+    function refreshStaff() { setStaff(readPrototypeStaff()) }
+    window.addEventListener(staffUpdatedEvent, refreshStaff)
+    return () => window.removeEventListener(staffUpdatedEvent, refreshStaff)
+  }, [])
+  function saveStaff(next: PrototypeStaff[]) { setStaff(next); localStorage.setItem(prototypeStaffKey, JSON.stringify(next)) }
+  function saveUsers(next: PrototypeUser[]) { setUsers(next); localStorage.setItem(prototypeUsersKey, JSON.stringify(next)) }
+  function requestPermissionAction(member: PrototypeStaff, keys: FormatorPermissionKey[], action: PermissionAction) {
+    const granted = action === 'GRANT'
+    const changes = keys.filter((key) => member[key] !== granted)
+    if (!changes.length) return
+    const next = staff.map((item) => item.id === member.id ? changes.reduce((updated, key) => ({ ...updated, [key]: granted }), item) : item)
+    const labels = permissions.filter((permission) => changes.includes(permission.key)).map((permission) => permission.label)
+    window.dispatchEvent(new CustomEvent<PendingPermission>(permissionRequestEvent, { detail: { staff: next, memberName: member.name, labels, action } }))
   }
-  return <><div className="admin-title-row"><div><span className="eyebrow">ACCESS CONTROL</span><h1>Manage users</h1><p>Formator staff accounts stored in this browser prototype.</p></div><Link className="button button-dark" to="/signup">Add Formator <Users size={15} /></Link></div><section className="admin-panel staff-panel"><div className="panel-heading"><div><h2>Formator staff</h2><p>{staff.length} local {staff.length === 1 ? 'account' : 'accounts'}</p></div><span className="staff-role-label">FORMATOR</span></div>{staff.length ? <div className="staff-table-wrap"><table><thead><tr><th>NAME</th><th>EMAIL</th><th>ROLE</th><th>ACCESS</th></tr></thead><tbody>{staff.map((member) => <tr key={member.id}><td><b>{member.name}</b></td><td>{member.email}</td><td>Formator</td><td><button className="staff-remove" onClick={() => removeStaff(member.id)}>Remove access</button></td></tr>)}</tbody></table></div> : <div className="staff-empty"><Users size={24} /><p>No Formator accounts yet.</p><Link to="/signup">Create the first staff account <ArrowRight size={14} /></Link></div>}</section></>
+  function requestPermission(member: PrototypeStaff, key: FormatorPermissionKey) { requestPermissionAction(member, [key], member[key] === true ? 'REVOKE' : 'GRANT') }
+  function setCreationPermission(key: FormatorPermissionKey, value: boolean) {
+    if (key === 'canManageUsers') setCanManageUsers(value)
+    else if (key === 'canManageDetails') setCanManageDetails(value)
+    else setCanManageUpdates(value)
+  }
+  async function createFormator(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const normalizedEmail = email.trim().toLowerCase()
+    if (name.trim().length < 2 || !normalizedEmail || password.length < 10) return setError('Enter a name, email, and password of at least 10 characters.')
+    if (staff.some((member) => member.email.toLowerCase() === normalizedEmail)) return setError('A Formator with this email already exists.')
+    saveStaff([{ id: crypto.randomUUID(), name: name.trim(), email: normalizedEmail, role: 'FORMATOR', passwordHash: await hashPrototypePassword(password), isActive: true, canManageUsers, canManageDetails, canManageUpdates }, ...staff])
+    setName('')
+    setEmail('')
+    setPassword('')
+    setCanManageUsers(false)
+    setCanManageDetails(false)
+    setCanManageUpdates(false)
+    setError('')
+    setShowCreate(false)
+  }
+  function toggleStaffActive(member: PrototypeStaff) { saveStaff(staff.map((item) => item.id === member.id ? { ...item, isActive: item.isActive === false } : item)) }
+  function deleteStaff(member: PrototypeStaff) { saveStaff(staff.filter((item) => item.id !== member.id)) }
+  function toggleUserBlocked(member: PrototypeUser) { saveUsers(users.map((item) => item.id === member.id ? { ...item, isBlocked: !item.isBlocked } : item)) }
+  function deleteUser(member: PrototypeUser) {
+    saveUsers(users.filter((item) => item.id !== member.id))
+    if (readMemberSession()?.id === member.id) saveMemberSession(null)
+    localStorage.setItem(prototypeThreadsKey, JSON.stringify(readDirectThreads().filter((thread) => thread.id !== `user:${member.id}`)))
+    localStorage.removeItem(memberDonationKey(member.email))
+    localStorage.removeItem(memberFavoriteKey(member.email))
+    localStorage.removeItem(memberDiscernmentKey(member.email))
+    window.dispatchEvent(new Event(directThreadsUpdatedEvent))
+  }
+  if (new URLSearchParams(location.search).get('role') !== 'USER') return <main className="user-admin-page"><header className="user-admin-heading"><div><span className="eyebrow">ACCESS CONTROL</span><h1>Manage users</h1><p>Manage accounts and Formator access from one place.</p></div><button className="button button-dark" onClick={() => setShowCreate(!showCreate)}>{showCreate ? <X size={15} /> : <Users size={15} />}{showCreate ? 'Cancel' : 'Add Formator'}</button></header><nav className="user-management-tabs" aria-label="Account type"><Link className="active" to="/admin/users?role=FORMATOR"><Users size={15} />Formators<span>{staff.length}</span></Link><Link to="/admin/users?role=USER"><User size={15} />Users<span>{users.length}</span></Link></nav><FormatorManagerView staff={staff} permissions={permissions} showCreate={showCreate} name={name} email={email} password={password} setName={setName} setEmail={setEmail} setPassword={setPassword} canManageUsers={canManageUsers} canManageDetails={canManageDetails} canManageUpdates={canManageUpdates} setCreationPermission={setCreationPermission} error={error} createFormator={createFormator} requestPermissionAction={requestPermissionAction} toggleStaffActive={toggleStaffActive} deleteStaff={deleteStaff} /></main>
+  return <main className="user-admin-page">
+    <header className="user-admin-heading"><div><span className="eyebrow">ACCESS CONTROL</span><h1>Manage users</h1><p>Manage accounts and Formator access from one place.</p></div>{view === 'FORMATOR' && <button className="button button-dark" onClick={() => setShowCreate(!showCreate)}>{showCreate ? <X size={15} /> : <Users size={15} />}{showCreate ? 'Cancel' : 'Add Formator'}</button>}</header>
+    <nav className="user-management-tabs" aria-label="Account type"><Link className={view === 'FORMATOR' ? 'active' : ''} to="/admin/users?role=FORMATOR"><Users size={15} />Formators<span>{staff.length}</span></Link><Link className={view === 'USER' ? 'active' : ''} to="/admin/users?role=USER"><User size={15} />Users<span>{users.length}</span></Link></nav>
+    {view === 'FORMATOR' ? <>
+      {showCreate && <form className="create-formator" onSubmit={createFormator}><header><span className="eyebrow">NEW STAFF ACCOUNT</span><h2>Create Formator</h2><p>Choose which areas this Formator can access.</p></header><div className="create-form-fields"><label>Full name<input value={name} onChange={(event) => setName(event.target.value)} placeholder="Full name" required minLength={2} /></label><label>Email address<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@example.com" required /></label><label>Password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} minLength={10} placeholder="At least 10 characters" required /></label></div><fieldset className="create-permission-group"><legend>Access grants</legend><div>{permissions.map(({ key, label, description }) => <label className="create-permission-option" key={key}><input type="checkbox" checked={key === 'canManageUsers' ? canManageUsers : key === 'canManageDetails' ? canManageDetails : canManageUpdates} onChange={(event) => setCreationPermission(key, event.target.checked)} /><span><b>{label}</b><small>{description}</small></span></label>)}</div></fieldset>{error && <p className="form-error" role="alert">{error}</p>}<footer><button className="button button-dark" type="submit">Create account <ArrowRight size={15} /></button></footer></form>}
+      <section className="managed-section"><header className="managed-section-heading"><div><span className="eyebrow">STAFF ACCESS</span><h2>Formator accounts</h2><p>{staff.length} {staff.length === 1 ? 'account' : 'accounts'} · permissions are managed here</p></div><span className="staff-role-label">FORMATOR</span></header>{staff.length ? <div className="managed-record-list">{staff.map((member) => <article className="managed-record" key={member.id}><header className="managed-record-identity"><span className="managed-avatar">{member.name.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()}</span><div><h3>{member.name}</h3><p>{member.email}</p></div><span className={`access-status ${member.isActive !== false ? 'enabled' : 'disabled'}`}>{member.isActive !== false ? 'Active' : 'Disabled'}</span></header><section className="managed-permissions"><div className="managed-permissions-heading"><h4>Permissions</h4><p>Select a permission to review and change access.</p></div><div className="managed-permission-grid">{permissions.map(({ key, label, description, icon: Icon }) => { const granted = member[key] === true; return <button type="button" key={key} className={`managed-permission ${granted ? 'granted' : ''}`} aria-pressed={granted} onClick={() => requestPermission(member, key)}><span className="managed-permission-icon"><Icon size={16} /></span><span className="managed-permission-copy"><b>{label}</b><small>{description}</small></span><span className={`managed-permission-state ${granted ? 'granted' : ''}`}>{granted ? 'Granted' : 'Not granted'}</span></button>})}</div></section><footer className="managed-record-actions"><span>Account actions</span><div><button className="staff-action" onClick={() => toggleStaffActive(member)}>{member.isActive !== false ? 'Disable account' : 'Enable account'}</button><button className="staff-remove" onClick={() => deleteStaff(member)}>Delete</button></div></footer></article>)}</div> : <div className="staff-empty"><Users size={24} /><p>No Formator accounts yet.</p></div>}</section>
+    </> : <section className="managed-section"><header className="managed-section-heading"><div><span className="eyebrow">COMMUNITY ACCESS</span><h2>User accounts</h2><p>{users.length} visitor accounts · manage account status</p></div><span className="staff-role-label">USER</span></header>{users.length ? <div className="managed-user-list">{users.map((member) => <article className="managed-user-row" key={member.id}><span className="managed-avatar user-avatar">{member.name.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()}</span><div className="managed-user-identity"><h3>{member.name}</h3><p>{member.email}</p></div><span className={`access-status ${member.isBlocked ? 'disabled' : 'enabled'}`}>{member.isBlocked ? 'Blocked' : 'Active'}</span><div className="managed-user-actions"><button className="staff-action" onClick={() => toggleUserBlocked(member)}>{member.isBlocked ? 'Unblock' : 'Block'}</button><button className="staff-remove" onClick={() => deleteUser(member)}>Delete</button></div></article>)}</div> : <div className="staff-empty"><Users size={24} /><p>No community users yet.</p></div>}</section>}
+  </main>
+}
+
+function PermissionConfirmationHost() {
+  const [request, setRequest] = useState<PendingPermission | null>(null)
+  useEffect(() => {
+    function openRequest(event: Event) { setRequest((event as CustomEvent<PendingPermission>).detail) }
+    window.addEventListener(permissionRequestEvent, openRequest)
+    return () => window.removeEventListener(permissionRequestEvent, openRequest)
+  }, [])
+  function confirm() {
+    if (!request) return
+    localStorage.setItem(prototypeStaffKey, JSON.stringify(request.staff))
+    setRequest(null)
+    window.dispatchEvent(new Event(staffUpdatedEvent))
+  }
+  if (!request) return null
+  const granting = request.action === 'GRANT'
+  return <div className="permission-confirm-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setRequest(null) }}><section className="permission-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="permission-confirm-title"><span className="permission-confirm-icon"><ShieldCheck size={21} /></span><span className="eyebrow">FORMATOR ACCESS</span><h2 id="permission-confirm-title">{granting ? 'Grant access?' : 'Revoke access?'}</h2><p>{granting ? `${request.memberName} will gain access to:` : `${request.memberName} will lose access to:`}</p><ul className="permission-confirm-list">{request.labels.map((label) => <li key={label}>{label}</li>)}</ul><footer><button className="button button-outline" onClick={() => setRequest(null)}>Cancel</button><button className={`button ${granting ? 'button-dark' : 'permission-revoke-button'}`} onClick={confirm}>{granting ? 'Confirm grant' : 'Confirm revoke'}</button></footer></section></div>
+}
+
+function DirectMessagesPage({ user }: { user: PrototypeStaff }) {
+  const [selectedId, setSelectedId] = useState('')
+  const [filter, setFilter] = useState('All')
+  const [messageFilter, setMessageFilter] = useState<'All' | 'Unread'>('All')
+  const [query, setQuery] = useState('')
+  const [draft, setDraft] = useState('')
+  const [threads, setThreads] = useState<DirectThread[]>(readDirectThreads)
+  const readCountsKey = `carmel-prototype-read-counts:${user.id}`
+  const [readCounts, setReadCounts] = useState<Record<string, number>>(() => { try { return JSON.parse(localStorage.getItem(readCountsKey) || '{}') as Record<string, number> } catch { return {} } })
+  const contact = (() => { try { return JSON.parse(localStorage.getItem('carmel-contact-conversation') || 'null') as { name: string; messages: Array<{ sender: 'VISITOR' | 'STAFF'; body: string; time?: string }> } | null } catch { return null } })()
+  const people: Array<Omit<DirectThread, 'messages'>> = [
+    ...readPrototypeUsers().map((person) => ({ id: `user:${person.id}`, recipientId: person.id, recipientName: person.name, recipientEmail: person.email, recipientRole: 'USER' as const })),
+    ...readPrototypeStaff().filter((person) => person.id !== user.id).map((person) => ({ id: `staff:${[user.id, person.id].sort().join(':')}`, recipientId: person.id, recipientName: person.name, recipientEmail: person.email, recipientRole: person.role })),
+    ...(user.role === 'FORMATOR' && !readPrototypeStaff().some((person) => person.role === 'ADMIN' && person.id !== user.id) ? [{ id: `staff:${[user.id, demoAdmin.id].sort().join(':')}`, recipientId: demoAdmin.id, recipientName: readDemoAdmin().name, recipientEmail: readDemoAdmin().email, recipientRole: 'ADMIN' as const }] : []),
+    ...(!readPrototypeStaff().some((person) => person.role === 'FORMATOR' && person.id !== user.id) ? [{ id: `staff:${[user.id, 'prototype-formator-beatrice'].sort().join(':')}`, recipientId: 'prototype-formator-beatrice', recipientName: 'Sister Beatrice', recipientEmail: 'beatrice@carmel.test', recipientRole: 'FORMATOR' as const }] : []),
+    ...(user.role === 'ADMIN' && user.id !== demoAdmin.id ? [{ id: `staff:${[user.id, demoAdmin.id].sort().join(':')}`, recipientId: demoAdmin.id, recipientName: demoAdmin.name, recipientEmail: demoAdmin.email, recipientRole: 'ADMIN' as const }] : []),
+    ...(user.role === 'ADMIN' && !readPrototypeStaff().some((person) => person.role === 'ADMIN' && person.id !== user.id) ? [{ id: `staff:${[user.id, 'prototype-admin-colleague'].sort().join(':')}`, recipientId: 'prototype-admin-colleague', recipientName: 'Federation Administrator', recipientEmail: 'office.admin@carmel.test', recipientRole: 'ADMIN' as const }] : []),
+    ...(contact ? [{ id: 'user:website-visitor', recipientId: 'website-visitor', recipientName: contact.name, recipientEmail: '', recipientRole: 'USER' as const }] : []),
+  ]
+  function messagesFor(person: Omit<DirectThread, 'messages'>) {
+    if (person.recipientId === 'website-visitor' && contact) return contact.messages.map((item) => ({ senderId: item.sender === 'STAFF' ? 'staff' : 'website-visitor', senderName: item.sender === 'STAFF' ? 'Federation office' : contact.name, body: item.body, time: item.time || 'Just now' }))
+    return threads.find((thread) => thread.id === person.id)?.messages || []
+  }
+  function isUnread(person: Omit<DirectThread, 'messages'>) { return messagesFor(person).slice(readCounts[person.id] || 0).some((item) => item.senderId !== user.id) }
+  const matchingPeople = people.filter((person) => (filter === 'All' || person.recipientRole === filter) && `${person.recipientName} ${person.recipientEmail}`.toLowerCase().includes(query.toLowerCase()))
+  const unreadCount = matchingPeople.filter(isUnread).length
+  const visiblePeople = matchingPeople.filter((person) => messageFilter === 'All' || isUnread(person))
+  const selected = visiblePeople.find((person) => person.id === selectedId) || visiblePeople[0]
+  const activeMessages = selected ? messagesFor(selected) : []
+  useEffect(() => {
+    function refresh() { setThreads(readDirectThreads()) }
+    window.addEventListener('storage', refresh)
+    window.addEventListener(directThreadsUpdatedEvent, refresh)
+    window.addEventListener('carmel-conversation-updated', refresh)
+    return () => { window.removeEventListener('storage', refresh); window.removeEventListener(directThreadsUpdatedEvent, refresh); window.removeEventListener('carmel-conversation-updated', refresh) }
+  }, [])
+  function markRead(person: Omit<DirectThread, 'messages'>) {
+    const next = { ...readCounts, [person.id]: messagesFor(person).length }
+    setReadCounts(next)
+    localStorage.setItem(readCountsKey, JSON.stringify(next))
+  }
+  function send(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const body = draft.trim()
+    if (!body || !selected) return
+    const existing = threads.find((thread) => thread.id === selected.id)
+    const baseMessages = selected.recipientId === 'website-visitor' ? activeMessages : existing?.messages || activeMessages
+    const nextThread: DirectThread = { ...selected, messages: [...baseMessages, { senderId: user.id, senderName: user.name, body, time: 'Just now' }] }
+    const next = [...threads.filter((thread) => thread.id !== selected.id), nextThread]
+    setThreads(next)
+    localStorage.setItem(prototypeThreadsKey, JSON.stringify(next))
+    const nextReads = { ...readCounts, [selected.id]: nextThread.messages.length }
+    setReadCounts(nextReads)
+    localStorage.setItem(readCountsKey, JSON.stringify(nextReads))
+    if (selected.recipientId === 'website-visitor' && contact) {
+      const savedContact = { ...contact, messages: [...contact.messages, { sender: 'STAFF' as const, body, time: 'Just now' }] }
+      localStorage.setItem('carmel-contact-conversation', JSON.stringify(savedContact))
+      window.dispatchEvent(new Event('carmel-conversation-updated'))
+    }
+    setDraft('')
+  }
+  const categories = ['All', 'USER', 'FORMATOR', 'ADMIN']
+  return <>
+    <div className="admin-title-row"><div><span className="eyebrow">INBOX</span><h1>Messages</h1><p>Conversations with users, Formators, and administrators.</p></div></div>
+    <div className="inbox-role-categories" role="group" aria-label="Filter messages by recipient role">{categories.map((category) => <button key={category} className={filter === category ? 'active' : ''} onClick={() => setFilter(category)}>{category === 'All' ? 'All' : category === 'USER' ? 'Users' : category === 'FORMATOR' ? 'Formators' : 'Admins'}</button>)}</div>
+    <section className="inbox-panel direct-inbox admin-panel">
+      <aside className="conversation-list direct-inbox-list">
+        <label className="conversation-search"><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search conversations" aria-label="Search conversations" /></label>
+        <div className="inbox-tabs direct-message-tabs"><button className={messageFilter === 'All' ? 'active' : ''} onClick={() => setMessageFilter('All')}>All</button><button className={messageFilter === 'Unread' ? 'active' : ''} onClick={() => setMessageFilter('Unread')}>Unread{unreadCount > 0 && <i>{unreadCount}</i>}</button></div>
+        <div className="direct-recipient-list">{visiblePeople.map((person) => <button key={person.id} className={`conversation-row direct-recipient ${selected?.id === person.id ? 'selected' : ''}`} onClick={() => { setSelectedId(person.id); markRead(person) }}><span className={`avatar ${person.recipientRole === 'USER' ? 'gold' : 'green'}`}>{person.recipientName.split(' ').map((part) => part[0]).join('').slice(0, 2)}</span><span><b>{person.recipientName}</b><small>{person.recipientRole === 'USER' ? 'Community user' : person.recipientRole === 'ADMIN' ? 'Administrator' : 'Formator'}</small><small>{messagesFor(person).at(-1)?.body || 'Start a conversation'}</small></span></button>)}{visiblePeople.length === 0 && <p className="direct-empty">No {messageFilter === 'Unread' ? 'unread ' : ''}conversations.</p>}</div>
+      </aside>
+      <div className="direct-thread">{selected ? <><header className="direct-thread-head"><span className={`avatar ${selected.recipientRole === 'USER' ? 'gold' : 'green'}`}>{selected.recipientName.split(' ').map((part) => part[0]).join('').slice(0, 2)}</span><div><b>{selected.recipientName}</b><small>{selected.recipientRole === 'USER' ? 'Community user' : selected.recipientRole === 'ADMIN' ? 'Administrator' : 'Formator'}{selected.recipientEmail ? ` · ${selected.recipientEmail}` : ''}</small></div></header><div className="direct-thread-messages">{activeMessages.length ? activeMessages.map((item, index) => <article className={`direct-message ${item.senderId === user.id || (item.senderId === 'staff' && selected.recipientId === 'website-visitor') ? 'outgoing' : ''}`} key={`${item.time}-${index}`}><b>{item.senderId === user.id ? 'You' : item.senderName}</b><p>{item.body}</p><small>{item.time}</small></article>) : <p className="direct-empty">No messages yet. Start the conversation here.</p>}</div><form className="direct-compose" onSubmit={send}><input value={draft} onChange={(event) => setDraft(event.target.value)} placeholder={`Message ${selected.recipientName}...`} aria-label="Write a message" /><button className="button button-dark" type="submit" aria-label="Send message"><ArrowRight size={15} /></button></form></> : <div className="direct-empty">Select a person to open a conversation.</div>}</div>
+    </section>
+  </>
+}
+
+function FormatorUsersPage() {
+  const [users, setUsers] = useState(readPrototypeUsers)
+  function saveUsers(next: PrototypeUser[]) { setUsers(next); localStorage.setItem(prototypeUsersKey, JSON.stringify(next)) }
+  function toggleBlocked(person: PrototypeUser) { saveUsers(users.map((item) => item.id === person.id ? { ...item, isBlocked: !item.isBlocked } : item)) }
+  function deleteUser(person: PrototypeUser) {
+    saveUsers(users.filter((item) => item.id !== person.id))
+    if (readMemberSession()?.id === person.id) saveMemberSession(null)
+    localStorage.setItem(prototypeThreadsKey, JSON.stringify(readDirectThreads().filter((thread) => thread.id !== `user:${person.id}`)))
+    localStorage.removeItem(memberDonationKey(person.email))
+    localStorage.removeItem(memberFavoriteKey(person.email))
+    localStorage.removeItem(memberDiscernmentKey(person.email))
+    window.dispatchEvent(new Event(directThreadsUpdatedEvent))
+  }
+  return <main className="user-admin-page"><header className="user-admin-heading"><div><span className="eyebrow">ACCESS CONTROL</span><h1>Manage users</h1><p>Manage community account status and access.</p></div></header><nav className="user-management-tabs" aria-label="Account type"><Link to="/admin/users?role=USER" className="active"><User size={15} />Users<span>{users.length}</span></Link></nav><section className="managed-section"><header className="managed-section-heading"><div><span className="eyebrow">COMMUNITY ACCESS</span><h2>Community users</h2><p>{users.length} {users.length === 1 ? 'account' : 'accounts'} · manage account status</p></div><span className="staff-role-label">USER ACCESS</span></header>{users.length ? <div className="managed-user-list">{users.map((person) => <article className="managed-user-row" key={person.id}><span className="managed-avatar user-avatar">{person.name.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()}</span><div className="managed-user-identity"><h3>{person.name}</h3><p>{person.email}</p></div><span className={`access-status ${person.isBlocked ? 'disabled' : 'enabled'}`}>{person.isBlocked ? 'Blocked' : 'Active'}</span><div className="managed-user-actions"><button className="staff-action" onClick={() => toggleBlocked(person)}>{person.isBlocked ? 'Unblock' : 'Block'}</button><button className="staff-remove" onClick={() => deleteUser(person)}>Delete</button></div></article>)}</div> : <div className="staff-empty"><Users size={24} /><p>No community users yet.</p></div>}</section></main>
+}
+
+function RoleAwareUsersPage({ user }: { user: PrototypeStaff }) { return user.role === 'ADMIN' ? <ManageUsersPage /> : <FormatorUsersPage /> }
+
+type AdminDiscerner = { userId: string; name: string; email: string; monastery: string; stage: DiscernmentStage; updatedAt: string }
+function readPrototypeDiscerners(): AdminDiscerner[] {
+  return readPrototypeUsers().flatMap((member) => {
+    try {
+      const stored = localStorage.getItem(memberDiscernmentKey(member.email))
+      if (!stored) return []
+      const details = JSON.parse(stored) as MemberDiscernment
+      return [{ userId: member.id, name: member.name, email: member.email, monastery: details.monastery || '', stage: normalizeDiscernmentStage(details.stage), updatedAt: details.updatedAt || '' }]
+    } catch { return [] }
+  })
+}
+function AdminDiscernmentPage({ user }: { user: PrototypeStaff }) {
+  const isPrototype = user.id === demoAdmin.id || readPrototypeStaff().some((staff) => staff.id === user.id)
+  const [records, setRecords] = useState<AdminDiscerner[]>([])
+  const [query, setQuery] = useState('')
+  const [pendingUserId, setPendingUserId] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(true)
+  useEffect(() => {
+    let active = true
+    const load = () => {
+      if (isPrototype) {
+        setRecords(readPrototypeDiscerners())
+        setLoading(false)
+        return
+      }
+      fetch('/api/admin/discernment', { credentials: 'include' }).then(async (response) => {
+        const result = await response.json()
+        if (!response.ok) throw new Error(result.error || 'Unable to load discerners.')
+        if (active) setRecords((result.discerners || []).map((record: { userId: string; monastery: string; stage: string; updatedAt: string; user: { name: string; email: string } }) => ({ userId: record.userId, name: record.user.name, email: record.user.email, monastery: record.monastery, stage: normalizeDiscernmentStage(record.stage), updatedAt: record.updatedAt })))
+      }).catch((reason) => { if (active) setError(reason instanceof Error ? reason.message : 'Unable to load discerners.') }).finally(() => { if (active) setLoading(false) })
+    }
+    load()
+    if (isPrototype) {
+      window.addEventListener('storage', load)
+      window.addEventListener(discernmentUpdatedEvent, load)
+      return () => { active = false; window.removeEventListener('storage', load); window.removeEventListener(discernmentUpdatedEvent, load) }
+    }
+    return () => { active = false }
+  }, [isPrototype])
+  async function updateStage(record: AdminDiscerner, stage: DiscernmentStage) {
+    setPendingUserId(record.userId)
+    setError('')
+    try {
+      let updatedAt = new Date().toISOString()
+      if (isPrototype) {
+        const stored = localStorage.getItem(memberDiscernmentKey(record.email))
+        const details = stored ? JSON.parse(stored) as MemberDiscernment : { monastery: '', stage: 'EXPLORING' as DiscernmentStage, note: '' }
+        localStorage.setItem(memberDiscernmentKey(record.email), JSON.stringify({ ...details, stage, updatedAt }))
+      } else {
+        const response = await fetch(`/api/admin/discernment/${encodeURIComponent(record.userId)}/stage`, { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ stage }) })
+        const result = await response.json()
+        if (!response.ok) throw new Error(result.error || 'Unable to update this stage.')
+        updatedAt = result.discernment.updatedAt
+      }
+      setRecords((current) => current.map((item) => item.userId === record.userId ? { ...item, stage, updatedAt } : item))
+      window.dispatchEvent(new Event(discernmentUpdatedEvent))
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Unable to update this stage.') }
+    finally { setPendingUserId('') }
+  }
+  const filtered = records.filter((record) => `${record.name} ${record.email} ${record.monastery}`.toLowerCase().includes(query.toLowerCase()))
+  return <main className="user-admin-page discerner-admin-page"><header className="user-admin-heading"><div><span className="eyebrow">VOCATION JOURNEY</span><h1>Discerning users</h1><p>Follow each discerner’s progress and update their stage when the community is ready.</p></div><span className="discerner-total">{records.length} {records.length === 1 ? 'discerner' : 'discerners'}</span></header><div className="discerner-stage-summary">{discernmentStages.map((stage, index) => <div key={stage.id}><span>0{index + 1}</span><b>{records.filter((record) => record.stage === stage.id).length}</b><small>{stage.label}</small></div>)}</div><div className="discerner-toolbar"><label><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search by name, email, or community" aria-label="Search discerners" /></label><span>Stage changes are visible in the user’s account.</span></div>{error && <p className="form-error" role="alert">{error}</p>}{loading ? <div className="staff-empty">Loading discerners…</div> : filtered.length ? <section className="discerner-list">{filtered.map((record) => <article className="discerner-row" key={record.userId}><div className="discerner-identity"><span className="managed-avatar user-avatar">{record.name.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()}</span><div><h2>{record.name}</h2><p>{record.email}</p>{record.monastery && <small>{record.monastery}</small>}</div></div><div className="discerner-stage"><span className="eyebrow">CURRENT STAGE</span><b>{discernmentStages.find((stage) => stage.id === record.stage)?.label}</b><small>{record.updatedAt ? `Updated ${new Date(record.updatedAt).toLocaleDateString()}` : 'Not updated yet'}</small></div><label className="discerner-stage-edit"><span>Update stage</span><select value={record.stage} onChange={(event) => void updateStage(record, event.target.value as DiscernmentStage)} disabled={pendingUserId === record.userId}>{discernmentStages.map((stage) => <option value={stage.id} key={stage.id}>{stage.label}</option>)}</select></label></article>)}</section> : <div className="staff-empty"><Heart size={24} /><p>{records.length ? 'No discerners match your search.' : 'No users have started discerning yet.'}</p></div>}</main>
 }
 
 function AdminPage() {
@@ -254,7 +1323,8 @@ function AdminPage() {
   }, [])
   if (checking) return <div className="admin-loading">Checking your session…</div>
   if (!user) return <Navigate to="/login" replace />
-  return <AdminShell user={user}><Routes><Route index element={<DashboardPage />} /><Route path="messages" element={<MessagesPage />} /><Route path="updates" element={user.role === 'ADMIN' ? <GenericAdmin title="Updates" /> : <Navigate to="/admin" replace />} /><Route path="users" element={user.role === 'ADMIN' ? <ManageUsersPage /> : <Navigate to="/admin" replace />} /><Route path="donations" element={<GenericAdmin title="Donation logs" />} /><Route path="content" element={user.role === 'ADMIN' ? <GenericAdmin title="Manage details" /> : <Navigate to="/admin" replace />} /><Route path="audit" element={user.role === 'ADMIN' ? <GenericAdmin title="Audit logs" /> : <Navigate to="/admin" replace />} /><Route path="*" element={<DashboardPage />} /></Routes></AdminShell>
+  void MessagesPage
+  return <AdminShell user={user} onUserUpdated={setUser}><Routes><Route index element={user.role === 'ADMIN' ? <DashboardPage /> : <FormatorDashboard user={user} />} /><Route path="messages" element={<DirectMessagesPage user={user} />} /><Route path="updates" element={user.role === 'ADMIN' || user.canManageUpdates ? <UpdatesAdminPage /> : <Navigate to="/admin" replace />} /><Route path="users" element={user.role === 'ADMIN' || user.canManageUsers ? <RoleAwareUsersPage user={user} /> : <Navigate to="/admin" replace />} /><Route path="discerners" element={user.role === 'ADMIN' ? <AdminDiscernmentPage user={user} /> : <Navigate to="/admin" replace />} /><Route path="donations" element={user.role === 'ADMIN' ? <GenericAdmin title="Donation logs" /> : <Navigate to="/admin" replace />} /><Route path="content" element={user.role === 'ADMIN' || user.canManageDetails ? <GenericAdmin title="Manage details" /> : <Navigate to="/admin" replace />} /><Route path="audit" element={user.role === 'ADMIN' ? <GenericAdmin title="Audit logs" /> : <Navigate to="/admin" replace />} /><Route path="*" element={user.role === 'ADMIN' ? <DashboardPage /> : <FormatorDashboard user={user} />} /></Routes></AdminShell>
 }
-function AppRoutes() { return <Routes><Route path="/" element={<PublicLayout><HomePage /></PublicLayout>} /><Route path="/about" element={<PublicLayout><AboutPage /></PublicLayout>} /><Route path="/monasteries" element={<PublicLayout><MonasteriesPage /></PublicLayout>} /><Route path="/carmelife" element={<PublicLayout><StoryPage kind="life" /></PublicLayout>} /><Route path="/carmelights" element={<PublicLayout><StoryPage kind="stories" /></PublicLayout>} /><Route path="/updates" element={<PublicLayout><StoryPage kind="updates" /></PublicLayout>} /><Route path="/contact" element={<PublicLayout><ContactPage /></PublicLayout>} /><Route path="/donations" element={<PublicLayout><DonationsPage /></PublicLayout>} /><Route path="/login" element={<LoginPage />} /><Route path="/signup" element={<SignupPage />} /><Route path="/admin/*" element={<AdminPage />} /><Route path="*" element={<PublicLayout><section className="content-page section-wrap"><h1>This page has <em>gone quiet.</em></h1><Link className="button button-dark" to="/">Return home <ArrowRight size={15} /></Link></section></PublicLayout>} /></Routes> }
-export default function CarmelApp() { return <BrowserRouter><AppRoutes /></BrowserRouter> }
+function AppRoutes() { return <Routes><Route path="/" element={<PublicLayout><HomePage /></PublicLayout>} /><Route path="/about" element={<PublicLayout><AboutPage /></PublicLayout>} /><Route path="/spirituality" element={<PublicLayout><SpiritualityPage /></PublicLayout>} /><Route path="/monasteries" element={<PublicLayout><MonasteriesPage /></PublicLayout>} /><Route path="/carmelife" element={<PublicLayout><StoryPage kind="life" /></PublicLayout>} /><Route path="/carmelights" element={<PublicLayout><StoryPage kind="stories" /></PublicLayout>} /><Route path="/updates" element={<PublicLayout><StoryPage kind="updates" /></PublicLayout>} /><Route path="/contact" element={<PublicLayout><ContactPage /></PublicLayout>} /><Route path="/donations" element={<PublicLayout><DonationsPage /></PublicLayout>} /><Route path="/account/login" element={<MemberAuthPage mode="login" />} /><Route path="/account/signup" element={<MemberAuthPage mode="signup" />} /><Route path="/account" element={<PublicLayout><MemberAccountPage /></PublicLayout>} /><Route path="/account/:section" element={<PublicLayout><MemberAccountPage /></PublicLayout>} /><Route path="/login" element={<LoginPage />} /><Route path="/signup" element={<SignupPage />} /><Route path="/admin/*" element={<AdminPage />} /><Route path="*" element={<PublicLayout><section className="content-page section-wrap"><h1>This page has <em>gone quiet.</em></h1><Link className="button button-dark" to="/">Return home <ArrowRight size={15} /></Link></section></PublicLayout>} /></Routes> }
+export default function CarmelApp() { return <BrowserRouter><AppRoutes /><PermissionConfirmationHost /></BrowserRouter> }

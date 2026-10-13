@@ -44,16 +44,41 @@ enum MessageCategory {
   GENERAL
 }
 
+enum DiscernmentStage {
+  EXPLORING
+  PRAYING_AND_LEARNING
+  READY_TO_VISIT
+  IN_CONVERSATION
+}
+
 model User {
   id           String      @id @default(cuid())
   name         String
   email        String      @unique
+  phone        String      @default("")
+  address      String      @default("")
+  privacyConsentAt      DateTime?
+  privacyPolicyVersion  String?
   passwordHash String
   role         Role        @default(USER)
   isActive     Boolean     @default(true)
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
   auditLogs    AuditLog[]
+  discernment  Discernment?
+}
+
+model Discernment {
+  id         String           @id @default(cuid())
+  userId     String           @unique
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stage      DiscernmentStage @default(EXPLORING)
+  monastery  String           @default("")
+  note       String           @default("")
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  @@index([stage, updatedAt])
 }
 
 model Monastery {
